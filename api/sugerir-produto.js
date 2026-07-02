@@ -23,54 +23,90 @@ Você é um assistente de cadastro para uma lanchonete brasileira chamada Delíc
 
 Produto informado: "${nome}"
 
-Responda APENAS JSON válido, sem markdown.
+Responda SOMENTE com JSON válido, sem markdown.
 
-Formato:
+Use este formato:
 {
   "nome": "Nome corrigido",
-  "categoria": "salgados | paes | bebidas | outros",
-  "emoji": "emoji adequado",
-  "descricao": "descrição curta e vendedora",
-  "preco": número,
-  "sabores": ["sabor 1", "sabor 2"],
-  "sobEncomenda": true ou false,
-  "destaque": true ou false
+  "categoria": "salgados",
+  "emoji": "🥖",
+  "descricao": "Descrição curta",
+  "preco": 8,
+  "sabores": [],
+  "sobEncomenda": false,
+  "destaque": false
 }
 
-Regras:
-- Categoria deve ser exatamente uma das opções.
-- Use preço realista para lanchonete simples no interior de SP.
-- Se não fizer sentido ter sabores, use [].
+Categorias permitidas:
+salgados, paes, bebidas, outros.
 `;
 
     const resposta = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ],
           generationConfig: {
-            temperature: 0.35,
-            responseMimeType: "application/json"
+            temperature: 0.2
           }
         })
       }
     );
 
-    const data = await resposta.json();
+    const textoBruto = await resposta.text();
 
     if (!resposta.ok) {
-      return res.status(500).json({ erro: "Erro ao chamar Gemini.", detalhe: data });
+      return res.status(500).json({
+        erro: "Erro ao chamar Gemini.",
+        status: resposta.status,
+        respostaGemini: textoBruto
+      });
     }
 
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let data;
+
+    try {
+      data = JSON.parse(textoBruto);
+    } catch {
+      return res.status(500).json({
+        erro: "Gemini respondeu algo que não é JSON da API.",
+        respostaBruta: textoBruto
+      });
+    }
+
+    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
-      return res.status(500).json({ erro: "Gemini não retornou texto." });
+      return res.status(500).json({
+        erro: "Gemini não retornou texto.",
+        respostaGemini: data
+      });
     }
 
-    return res.status(200).json(JSON.parse(text));
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    try {
+      const produto = JSON.parse(text);
+      return res.status(200).json(produto);
+    } catch {
+      return res.status(500).json({
+        erro: "Gemini respondeu texto, mas não era JSON válido.",
+        textoGerado: text
+      });
+    }
+
   } catch (erro) {
     return res.status(500).json({
       erro: "Erro interno ao gerar sugestão.",
