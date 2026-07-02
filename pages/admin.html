@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Delícias da Vó | Painel ADM</title>
+
   <link rel="stylesheet" href="../css/admin.css" />
 </head>
 <body>
@@ -18,36 +20,69 @@
 
   <main class="admin-app" id="adminApp">
     <aside class="sidebar">
-      <div class="sidebar-brand"><div class="logo-admin small">DV</div><div><strong>Delícias da Vó</strong><span>V4.0 Meio</span></div></div>
+      <div class="sidebar-brand">
+        <div class="logo-admin small">DV</div>
+        <div>
+          <strong>Delícias da Vó</strong>
+          <span>V4 Recuperação</span>
+        </div>
+      </div>
+
       <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Dashboard</button>
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
+      <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
+      <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
+
       <a class="site-link" href="../index.html">🌐 Ver site</a>
       <button class="logout" onclick="sairConta()">Sair</button>
     </aside>
 
     <section class="content">
       <header class="admin-top">
-        <div><h1 id="tituloAba">Dashboard</h1><p>Produtos, venda rápida, estoque e caixa do dia.</p></div>
+        <div>
+          <p class="eyebrow">Delícias da Vó OS</p>
+          <h1 id="tituloAba">Dashboard</h1>
+          <p>Resumo da loja, vendas, produtos e estoque em tempo real.</p>
+        </div>
+
         <button onclick="criarProdutosBase()">Criar/Restaurar base</button>
       </header>
 
       <section class="aba active" id="aba-dashboard">
+        <div class="atalhos-grid">
+          <button onclick="abrirAbaPorNome('venda')">🧾 <strong>Venda rápida</strong><span>Registrar venda da loja física</span></button>
+          <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Novo produto</strong><span>Cadastrar ou editar produtos</span></button>
+          <button onclick="abrirAbaPorNome('caixa')">💰 <strong>Caixa</strong><span>Ver vendas e pagamentos</span></button>
+          <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas e descontos</span></button>
+        </div>
+
         <div class="stats-grid">
-          <div class="stat"><span>Produtos</span><strong id="statProdutos">0</strong></div>
-          <div class="stat"><span>Ativos</span><strong id="statAtivos">0</strong></div>
-          <div class="stat"><span>Estoque baixo</span><strong id="statBaixo">0</strong></div>
-          <div class="stat"><span>Vendas hoje</span><strong id="statVendasHoje">R$ 0,00</strong></div>
+          <div class="stat destaque"><span>💰 Vendas hoje</span><strong id="statVendasHoje">R$ 0,00</strong><small id="statQtdVendas">0 vendas registradas</small></div>
+          <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
+          <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
+          <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
         </div>
 
         <div class="dashboard-grid">
           <div class="panel">
-            <h2>⚠ Produtos em atenção</h2>
+            <div class="panel-title">
+              <div>
+                <h2>⚠ Produtos em atenção</h2>
+                <p>Produtos com estoque baixo ou esgotado.</p>
+              </div>
+            </div>
             <div id="avisosDashboard" class="lista-simples"></div>
           </div>
+
           <div class="panel">
-            <h2>🧾 Últimas vendas</h2>
+            <div class="panel-title">
+              <div>
+                <h2>🧾 Últimas vendas</h2>
+                <p>Vendas físicas registradas hoje.</p>
+              </div>
+            </div>
             <div id="ultimasVendasDashboard" class="lista-simples"></div>
           </div>
         </div>
@@ -55,37 +90,70 @@
 
       <section class="aba" id="aba-produtos">
         <div class="panel-head">
-          <div><h2>Produtos</h2><p>Crie, edite, desative ou exclua produtos.</p></div>
+          <div>
+            <p class="eyebrow">Catálogo</p>
+            <h2>Produtos</h2>
+            <p>Crie, edite, desative ou exclua produtos.</p>
+          </div>
+
           <button class="primary-btn" onclick="abrirModalProduto()">➕ Novo produto</button>
         </div>
+
         <input class="input-full" id="buscaAdminProduto" placeholder="Pesquisar produto..." oninput="renderProdutosAdmin()" />
         <div id="listaProdutosAdmin" class="lista-produtos-admin"></div>
       </section>
 
       <section class="aba" id="aba-venda">
         <div class="panel-head">
-          <div><h2>Venda rápida</h2><p>Venda da loja física com baixa automática no estoque.</p></div>
+          <div>
+            <p class="eyebrow">Loja física</p>
+            <h2>Venda rápida</h2>
+            <p>Registre vendas presenciais e baixe o estoque automaticamente.</p>
+          </div>
         </div>
 
         <div class="venda-layout">
           <div class="panel">
-            <h3>Produtos</h3>
+            <div class="panel-title">
+              <div>
+                <h3>Produtos</h3>
+                <p>Clique em adicionar para montar a venda.</p>
+              </div>
+            </div>
+
             <input class="input-full" id="buscaVenda" placeholder="Buscar produto..." oninput="renderVendaRapida()" />
             <div id="listaVendaRapida" class="lista-venda"></div>
           </div>
 
-          <div class="panel">
-            <h3>Venda atual</h3>
+          <div class="panel venda-atual-card">
+            <div class="panel-title">
+              <div>
+                <h3>Venda atual</h3>
+                <p>Confira antes de finalizar.</p>
+              </div>
+            </div>
+
             <div id="itensVendaRapida" class="lista-simples"></div>
-            <div class="total-venda"><span>Total</span><strong id="totalVendaRapida">R$ 0,00</strong></div>
+
+            <div class="total-venda">
+              <span>Total</span>
+              <strong id="totalVendaRapida">R$ 0,00</strong>
+            </div>
+
             <select id="formaPagamentoVenda">
               <option>Pix</option>
               <option>Dinheiro</option>
               <option>Cartão débito</option>
               <option>Cartão crédito</option>
             </select>
+
             <input id="obsVenda" placeholder="Observação da venda (opcional)" />
-            <button class="primary-btn full" onclick="finalizarVendaRapida()">Finalizar venda</button>
+
+            <div class="venda-actions">
+              <button class="secondary-btn" onclick="limparVendaRapida()">Limpar</button>
+              <button class="primary-btn" onclick="finalizarVendaRapida()">Finalizar venda</button>
+            </div>
+
             <div id="mensagemVenda" class="mensagem-venda"></div>
           </div>
         </div>
@@ -93,15 +161,84 @@
 
       <section class="aba" id="aba-caixa">
         <div class="panel">
-          <h2>Caixa do dia</h2>
-          <p>Resumo das vendas físicas registradas hoje.</p>
+          <div class="panel-title">
+            <div>
+              <p class="eyebrow">Financeiro</p>
+              <h2>Caixa do dia</h2>
+              <p>Resumo das vendas físicas registradas hoje.</p>
+            </div>
+          </div>
+
           <div id="resumoCaixa" class="caixa-grid"></div>
         </div>
 
         <div class="panel">
-          <h2>Histórico de vendas</h2>
+          <div class="panel-title">
+            <div>
+              <h2>Histórico de vendas</h2>
+              <p>Apague vendas de teste ou lançadas errado.</p>
+            </div>
+          </div>
           <div id="historicoVendas" class="lista-simples"></div>
         </div>
+      </section>
+
+      <section class="aba" id="aba-promocoes">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Ofertas</p>
+            <h2>Promoções</h2>
+            <p>Crie quantas promoções quiser e controle quando aparecem no site.</p>
+          </div>
+          <button class="primary-btn" onclick="abrirModalPromocao()">➕ Nova promoção</button>
+        </div>
+
+        <div class="panel">
+          <h3>Promoções cadastradas</h3>
+          <p>Promoções ativas aparecem no site e destacam o preço promocional.</p>
+          <div id="listaPromocoes" class="lista-promocoes"></div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-config">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Loja</p>
+            <h2>Configurações</h2>
+            <p>Altere informações da loja sem abrir o código.</p>
+          </div>
+          <button class="primary-btn" onclick="salvarConfiguracoesLoja()">Salvar configurações</button>
+        </div>
+
+        <div class="config-grid">
+          <div class="panel">
+            <h3>Identidade</h3>
+            <label>Nome da loja<input id="configNomeLoja" placeholder="Delícias da Vó"></label>
+            <label>Slogan<input id="configSlogan" placeholder="Feito com carinho"></label>
+            <label>Instagram<input id="configInstagram" placeholder="@deliciasda_vo"></label>
+          </div>
+
+          <div class="panel">
+            <h3>Contato</h3>
+            <label>WhatsApp da loja<input id="configWhatsapp" placeholder="5518991178906"></label>
+            <label>Endereço<input id="configEndereco" placeholder="Endereço da loja"></label>
+            <label>Horário<input id="configHorario" placeholder="Segunda a sábado, 9h às 18h"></label>
+          </div>
+
+          <div class="panel">
+            <h3>Entrega</h3>
+            <label>Texto de entrega<input id="configEntrega" placeholder="Taxa conforme distância"></label>
+            <label>Texto de retirada<input id="configRetirada" placeholder="Retirada na loja"></label>
+            <label>Status da loja
+              <select id="configStatusLoja">
+                <option value="aberta">Aberta</option>
+                <option value="fechada">Fechada</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="statusConfig" class="mensagem-venda"></div>
       </section>
     </section>
   </main>
@@ -111,9 +248,25 @@
       <button class="modal-close" onclick="fecharModalProduto()">✕</button>
       <h2 id="modalTitulo">Novo produto</h2>
 
+      <div class="ai-box">
+        <div>
+          <strong>🤖 Sugestão com IA</strong>
+          <p>Digite o nome do produto e deixe a IA sugerir categoria, emoji e descrição.</p>
+        </div>
+        <button class="secondary-btn" onclick="gerarProdutoComIA()">✨ Gerar</button>
+      </div>
+      <div id="statusIA" class="ai-status"></div>
+
       <div class="form-grid">
         <label>Nome<input id="produtoNome" /></label>
-        <label>Categoria<select id="produtoCategoria"><option value="salgados">Salgados</option><option value="paes">Pães</option><option value="bebidas">Bebidas</option><option value="outros">Outros</option></select></label>
+        <label>Categoria
+          <select id="produtoCategoria">
+            <option value="salgados">Salgados</option>
+            <option value="paes">Pães</option>
+            <option value="bebidas">Bebidas</option>
+            <option value="outros">Outros</option>
+          </select>
+        </label>
         <label>Preço<input id="produtoPreco" type="number" step="0.01" /></label>
         <label>Emoji<input id="produtoEmoji" /></label>
         <label class="full">Descrição<textarea id="produtoDescricao"></textarea></label>
@@ -128,6 +281,50 @@
       <div class="modal-actions">
         <button onclick="fecharModalProduto()">Cancelar</button>
         <button class="primary-btn" onclick="salvarProdutoAdmin()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalConfirmarVenda">
+    <div class="modal-box venda-confirm-box">
+      <button class="modal-close" onclick="fecharConfirmacaoVenda()">✕</button>
+      <h2>Confirmar venda</h2>
+      <p>Confira se está tudo certo antes de finalizar.</p>
+
+      <div id="resumoConfirmacaoVenda" class="lista-simples"></div>
+
+      <div class="modal-actions">
+        <button onclick="fecharConfirmacaoVenda()">Voltar e corrigir</button>
+        <button class="primary-btn" onclick="confirmarFinalizacaoVenda()">Confirmar venda</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalPromocao">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fecharModalPromocao()">✕</button>
+      <h2 id="modalTituloPromocao">Nova promoção</h2>
+
+      <div class="form-grid">
+        <label>Título da promoção<input id="promoTitulo" placeholder="Ex: Combo da tarde"></label>
+        <label>Status
+          <select id="promoAtiva">
+            <option value="true">Ativa</option>
+            <option value="false">Inativa</option>
+          </select>
+        </label>
+        <label>Produto
+          <select id="promoProduto"></select>
+        </label>
+        <label>Preço promocional<input id="promoPreco" type="number" step="0.01" placeholder="Ex: 6.99"></label>
+        <label class="full">Descrição<textarea id="promoDescricao" placeholder="Ex: Promoção válida enquanto durar o estoque."></textarea></label>
+        <label>Data inicial<input id="promoInicio" type="date"></label>
+        <label>Data final<input id="promoFim" type="date"></label>
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="fecharModalPromocao()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarPromocaoAdmin()">Salvar promoção</button>
       </div>
     </div>
   </div>

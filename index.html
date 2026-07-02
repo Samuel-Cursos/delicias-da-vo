@@ -3,13 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Delícias da Vó | Pedidos Online</title>
+
   <link rel="stylesheet" href="css/site.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="logo">DV</div><div><strong>Delícias da Vó</strong><span>Pedidos online</span></div></div>
+    <div class="brand">
+      <div class="logo">DV</div>
+      <div>
+        <strong>Delícias da Vó</strong>
+        <span>Pedidos online</span>
+      </div>
+    </div>
+
     <nav>
+      <a href="#promocoes">Promoções</a>
       <a href="#cardapio">Cardápio</a>
       <button onclick="abrirCarrinho()">Carrinho</button>
       <div id="areaUsuario"></div>
@@ -20,16 +30,25 @@
     <div>
       <span class="pill">Feito com carinho ❤️</span>
       <h1>Delícias caseiras direto da Vó para sua mesa.</h1>
-      <p>Escolha seus produtos, monte seu pedido e envie pelo WhatsApp.</p>
+      <p>Escolha seus produtos, aproveite promoções e envie seu pedido pelo WhatsApp.</p>
       <a href="#cardapio" class="btn primary">Ver cardápio</a>
     </div>
   </section>
 
   <main class="container">
     <section class="cards-resumo">
-      <div><strong>🟢 Loja online</strong><span>Recebendo pedidos</span></div>
-      <div><strong>🚚 Entrega</strong><span>Taxa conforme distância</span></div>
-      <div><strong>🏪 Retirada</strong><span>Disponível na loja</span></div>
+      <div><strong>🟢 Loja online</strong><span id="statusLojaTexto">Recebendo pedidos</span></div>
+      <div><strong>🚚 Entrega</strong><span id="entregaTexto">Taxa conforme distância</span></div>
+      <div><strong>🏪 Retirada</strong><span id="retiradaTexto">Disponível na loja</span></div>
+    </section>
+
+    <section id="promocoes" class="promocoes-section">
+      <div class="section-title">
+        <h2>Promoções</h2>
+        <p>Ofertas cadastradas diretamente pelo painel ADM.</p>
+      </div>
+
+      <div id="listaPromocoesSite" class="produtos-grid"></div>
     </section>
 
     <section id="cardapio">
@@ -52,22 +71,38 @@
   </main>
 
   <aside class="carrinho" id="carrinho">
-    <div class="cart-head"><h2>🛒 Pedido</h2><button onclick="fecharCarrinho()">✕</button></div>
+    <div class="cart-head">
+      <h2>🛒 Pedido</h2>
+      <button onclick="fecharCarrinho()">✕</button>
+    </div>
+
     <div id="itensCarrinho" class="itens-carrinho"></div>
-    <div class="total"><span>Total</span><strong id="totalPedido">R$ 0,00</strong></div>
+
+    <div class="total">
+      <span>Total</span>
+      <strong id="totalPedido">R$ 0,00</strong>
+    </div>
 
     <div class="formulario">
       <input id="nomeCliente" placeholder="Nome" />
       <input id="telefoneCliente" placeholder="WhatsApp" />
-      <select id="tipoPedido"><option>Retirada na loja</option><option>Entrega</option></select>
+      <select id="tipoPedido">
+        <option>Retirada na loja</option>
+        <option>Entrega</option>
+      </select>
       <input id="enderecoCliente" placeholder="Endereço, se for entrega" />
-      <select id="pagamento"><option>Pix</option><option>Dinheiro</option><option>Cartão</option></select>
+      <select id="pagamento">
+        <option>Pix</option>
+        <option>Dinheiro</option>
+        <option>Cartão</option>
+      </select>
     </div>
 
     <button class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
   </aside>
 
   <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
+
   <script type="module" src="js/storefront/site.js"></script>
 </body>
 </html>

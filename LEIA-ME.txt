@@ -1,30 +1,42 @@
-ATUALIZAÇÃO V4 STABLE 01 - Delícias da Vó OS
+ATUALIZAÇÃO V4 RECUPERAÇÃO CORRETA
 
-O QUE ESSA ATUALIZAÇÃO FAZ:
-- Melhora o painel ADM.
-- Melhora a Venda Rápida.
-- Adiciona confirmação visual depois de finalizar venda.
-- Mostra histórico de vendas no Caixa.
-- Mostra resumo do Caixa por Pix, Dinheiro, Cartão Débito e Cartão Crédito.
-- Corrige o estoque base dos produtos.
-- Produtos sob encomenda não aparecem como estoque baixo.
-- Adiciona observação opcional na venda.
+Essa atualização foi feita em cima do ZIP completo que você mandou.
+Ela recupera as melhorias sem quebrar o site.
+
+INCLUI:
+- Visual melhorado do painel.
+- Dashboard com atalhos.
+- Venda rápida.
+- Confirmação antes de finalizar venda.
+- Apagar venda no histórico.
+- Restauração de estoque ao apagar venda.
+- Caixa do dia.
+- Configurações da loja.
+- WhatsApp editável pelo painel.
+- IA simples no cadastro de produto.
+- Promoções completas.
+- Seção Promoções visível no site.
+- Promoção com preço antigo riscado.
+- Carrinho usando preço promocional.
+- Administrador padrão: deliciasdavo54@gmail.com.
 
 COMO INSTALAR:
-1. Extraia esta pasta.
-2. Copie as pastas:
+1. Extraia este ZIP.
+2. Copie tudo que está dentro:
+   - api
    - css
    - js
    - pages
-3. Cole por cima da pasta do seu projeto.
-4. Quando o Windows perguntar, clique em Substituir arquivos.
+   - index.html
+   - manifest.json
+3. Cole dentro da pasta principal do projeto.
+4. Clique em Substituir arquivos.
 
-DEPOIS, NO VS CODE:
+DEPOIS DE TESTAR:
 git add .
-git commit -m "Atualizacao V4 Stable 01"
+git commit -m "V4 Recuperacao Correta"
 git push
 
 IMPORTANTE:
-Não abra essa pasta como projeto principal no VS Code.
-Ela é apenas uma atualização/patch.
-Cole os arquivos dentro da pasta do seu projeto atual.
+Não use mais os patches antigos da Stable 04.
+Esse patch foi feito usando o projeto que você enviou como base.
