@@ -57,13 +57,7 @@
         <p>Produtos carregados do Firebase.</p>
       </div>
 
-      <div class="categorias">
-        <button class="categoria ativa" onclick="filtrarCategoria(event,'todos')">Todos</button>
-        <button class="categoria" onclick="filtrarCategoria(event,'salgados')">Salgados</button>
-        <button class="categoria" onclick="filtrarCategoria(event,'paes')">Pães</button>
-        <button class="categoria" onclick="filtrarCategoria(event,'bebidas')">Bebidas</button>
-        <button class="categoria" onclick="filtrarCategoria(event,'outros')">Outros</button>
-      </div>
+      <div class="categorias" id="categoriasSite"></div>
 
       <input class="busca" id="buscaProduto" placeholder="Pesquisar produto..." oninput="pesquisarProdutos()" />
       <div id="listaProdutos" class="catalogo"></div>
@@ -102,6 +96,17 @@
   </aside>
 
   <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
+
+  <div class="modal" id="modalSabores">
+    <div class="modal-box">
+      <button class="modal-close" id="fecharModalSabores">✕</button>
+      <h2>Escolha um sabor</h2>
+      <div id="listaSaboresModal" class="sabores-list"></div>
+      <div class="modal-actions">
+        <button id="cancelarSabor">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="js/storefront/site.js"></script>
 </body>

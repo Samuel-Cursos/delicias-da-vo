@@ -2,18 +2,27 @@ import { iniciarAuth } from "../core/auth.js";
 import { APP_CONFIG } from "../core/config.js";
 import { formatarMoeda, limparTexto, salvarLocal, carregarLocal } from "../core/utils.js";
 import { produtos, observarProdutos, statusEstoque } from "../services/productService.js";
+import { categorias, categoriasBase, observarCategorias } from "../services/categoryService.js";
 import { lojaConfig, observarConfiguracoesLoja } from "../services/configService.js";
 import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../services/promotionService.js";
+import { createProductCard } from "../core/templates.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
+let pendingSaborProdutoId = null;
 
 iniciarAuth();
 
 observarProdutos(() => {
+  renderCategoriasSite();
   renderizarProdutos(categoriaAtual);
   renderPromocoesSite();
   atualizarCarrinho();
+});
+
+observarCategorias(() => {
+  renderCategoriasSite();
+  renderizarProdutos(categoriaAtual);
 });
 
 observarConfiguracoesLoja(() => {
@@ -39,6 +48,15 @@ function aplicarConfiguracoesSite() {
 
 function precoProduto(produto) {
   const promo = promocaoAtivaParaProduto(produto.id);
+
+  if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
+    const disponiveis = produto.variacoes.filter(v => v.ativa !== false && (v.sobEncomenda || Number(v.estoque || 0) > 0));
+    const precoBase = disponiveis.length
+      ? Math.min(...disponiveis.map(v => Number(v.preco || produto.preco || 0)))
+      : Number(produto.preco || 0);
+    return promo ? Number(promo.precoPromocional || precoBase) : Number(precoBase);
+  }
+
   return promo ? Number(promo.precoPromocional || produto.preco) : Number(produto.preco || 0);
 }
 
@@ -47,19 +65,16 @@ function cardProduto(produto) {
   const promo = promocaoAtivaParaProduto(produto.id);
   const precoFinal = precoProduto(produto);
 
-  return `
-    <div class="produto-card">
-      ${promo ? `<span class="promo-site">Promoção</span>` : `<span class="badge ${status.classe}">${status.texto}</span>`}
-      <div class="emoji">${produto.emoji || "🍽️"}</div>
-      <h3>${produto.nome}</h3>
-      <p>${promo?.descricao || produto.descricao || ""}</p>
-      ${promo ? `<span class="preco-antigo">${formatarMoeda(produto.preco)}</span>` : ""}
-      <span class="preco">${formatarMoeda(precoFinal)}</span>
-      <button ${!status.disponivel ? "disabled" : ""} onclick="adicionarCarrinho('${produto.id}')">
-        ${status.disponivel ? "Adicionar" : "Indisponível"}
-      </button>
-    </div>
-  `;
+  return createProductCard(produto, {
+    promo: Boolean(promo),
+    statusClass: status.classe,
+    badgeText: promo ? 'Promoção' : status.texto,
+    description: promo?.descricao || produto.descricao || '',
+    showOldPrice: Boolean(promo),
+    price: precoFinal,
+    available: status.disponivel,
+    buttonText: Array.isArray(produto.variacoes) && produto.variacoes.length ? 'Escolher' : undefined
+  });
 }
 
 function renderPromocoesSite() {
@@ -80,7 +95,10 @@ function renderPromocoesSite() {
   });
 
   if (!ativas.length) {
-    box.innerHTML = `<div class="promo-vazio">Nenhuma promoção ativa no momento.</div>`;
+    const vazio = document.createElement('div');
+    vazio.className = 'promo-vazio';
+    vazio.textContent = 'Nenhuma promoção ativa no momento.';
+    box.appendChild(vazio);
     return;
   }
 
@@ -88,22 +106,17 @@ function renderPromocoesSite() {
     const produto = produtos.find(p => p.id === promo.produtoId);
     if (!produto || produto.ativo === false) return;
 
-    box.innerHTML += `
-      <div class="produto-card">
-        <span class="promo-site">Promoção</span>
-        <div class="emoji">${produto.emoji || promo.produtoEmoji || "🎁"}</div>
-        <h3>${promo.titulo || produto.nome}</h3>
-        <p>${promo.descricao || produto.descricao || ""}</p>
-        <span class="preco-antigo">${formatarMoeda(produto.preco)}</span>
-        <span class="preco">${formatarMoeda(promo.precoPromocional)}</span>
-        <button onclick="adicionarCarrinho('${produto.id}')">Adicionar</button>
-      </div>
-    `;
-  });
+    const card = createProductCard(produto, {
+      promo: true,
+      badgeText: 'Promoção',
+      description: promo.descricao || produto.descricao || '',
+      showOldPrice: true,
+      price: promo.precoPromocional,
+      available: true
+    });
 
-  if (!box.innerHTML.trim()) {
-    box.innerHTML = `<div class="promo-vazio">Nenhuma promoção ativa no momento.</div>`;
-  }
+    box.appendChild(card);
+  });
 }
 
 function renderizarGrupo(container, categoria, titulo, descricao) {
@@ -111,12 +124,15 @@ function renderizarGrupo(container, categoria, titulo, descricao) {
 
   if (!lista.length) return;
 
-  const bloco = document.createElement("section");
-  bloco.className = "categoria-bloco";
-  bloco.innerHTML = `<h3>${titulo}</h3><p>${descricao}</p><div class="produtos-grid"></div>`;
+  const bloco = document.createElement('section');
+  bloco.className = 'categoria-bloco';
+  const h3 = document.createElement('h3'); h3.textContent = titulo; bloco.appendChild(h3);
+  if (descricao) {
+    const p = document.createElement('p'); p.textContent = descricao; bloco.appendChild(p);
+  }
+  const grid = document.createElement('div'); grid.className = 'produtos-grid'; bloco.appendChild(grid);
 
-  const grid = bloco.querySelector(".produtos-grid");
-  lista.forEach(produto => grid.innerHTML += cardProduto(produto));
+  lista.forEach(produto => grid.appendChild(cardProduto(produto)));
 
   container.appendChild(bloco);
 }
@@ -127,92 +143,138 @@ function renderizarProdutos(categoria = "todos") {
   const container = document.getElementById("listaProdutos");
   container.innerHTML = "";
 
-  if (categoria !== "todos") {
-    const bloco = document.createElement("section");
-    bloco.className = "categoria-bloco";
-    bloco.innerHTML = `<div class="produtos-grid"></div>`;
-
-    const grid = bloco.querySelector(".produtos-grid");
+  if (categoria !== 'todos') {
+    const bloco = document.createElement('section'); bloco.className = 'categoria-bloco';
+    const grid = document.createElement('div'); grid.className = 'produtos-grid'; bloco.appendChild(grid);
 
     produtos
       .filter(p => p.ativo !== false && p.categoria === categoria)
-      .forEach(p => grid.innerHTML += cardProduto(p));
+      .forEach(p => grid.appendChild(cardProduto(p)));
 
     container.appendChild(bloco);
     return;
   }
 
-  renderizarGrupo(container, "salgados", "🥟 Salgados", "Salgados fresquinhos da Delícias da Vó.");
-  renderizarGrupo(container, "paes", "🍞 Pães", "Pães caseiros e recheados.");
-  renderizarGrupo(container, "bebidas", "🥤 Bebidas", "Para acompanhar seu pedido.");
-  renderizarGrupo(container, "outros", "🍽️ Outros", "Outras opções do cardápio.");
+  const categoriasVisiveis = categorias.length ? categorias : categoriasBase;
+  const categoriasAtivas = categoriasVisiveis.filter(c => c.ativa !== false).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+
+  categoriasAtivas.forEach(cat => renderizarGrupo(container, cat.id, `${cat.emoji || '🏷️'} ${cat.nome}`, cat.descricao || ''));
 }
 
-window.filtrarCategoria = function(event, categoria) {
-  document.querySelectorAll(".categoria").forEach(btn => btn.classList.remove("ativa"));
-  event.target.classList.add("ativa");
+function renderCategoriasSite() {
+  const container = document.getElementById('categoriasSite');
+  if (!container) return;
+
+  const categoriasVisiveis = categorias.length ? categorias : categoriasBase;
+  const categoriasAtivas = categoriasVisiveis.filter(c => c.ativa !== false).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  container.innerHTML = '';
+
+  const todosBtn = document.createElement('button');
+  todosBtn.className = `categoria ${categoriaAtual === 'todos' ? 'ativa' : ''}`;
+  todosBtn.textContent = 'Todos';
+  todosBtn.addEventListener('click', event => filtrarCategoriaImpl(event, 'todos'));
+  container.appendChild(todosBtn);
+
+  categoriasAtivas.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = `categoria ${categoriaAtual === cat.id ? 'ativa' : ''}`;
+    btn.textContent = `${cat.emoji || '🏷️'} ${cat.nome}`;
+    btn.addEventListener('click', event => filtrarCategoriaImpl(event, cat.id));
+    container.appendChild(btn);
+  });
+}
+
+function filtrarCategoriaImpl(event, categoria) {
+  document.querySelectorAll('.categoria').forEach(btn => btn.classList.remove('ativa'));
+  if (event && event.target) event.target.classList.add('ativa');
   renderizarProdutos(categoria);
-};
+}
 
-window.pesquisarProdutos = function() {
-  const termo = limparTexto(document.getElementById("buscaProduto").value).toLowerCase();
-  const container = document.getElementById("listaProdutos");
+function pesquisarProdutosImpl() {
+  const termo = limparTexto(document.getElementById('buscaProduto').value).toLowerCase();
+  const container = document.getElementById('listaProdutos');
 
-  container.innerHTML = `<section class="categoria-bloco"><div class="produtos-grid"></div></section>`;
-
-  const grid = container.querySelector(".produtos-grid");
+  container.innerHTML = '';
+  const bloco = document.createElement('section'); bloco.className = 'categoria-bloco';
+  const grid = document.createElement('div'); grid.className = 'produtos-grid'; bloco.appendChild(grid);
 
   produtos
     .filter(p => p.ativo !== false)
     .filter(p =>
       p.nome.toLowerCase().includes(termo) ||
-      (p.descricao || "").toLowerCase().includes(termo) ||
+      (p.descricao || '').toLowerCase().includes(termo) ||
       p.categoria.includes(termo)
     )
-    .forEach(p => grid.innerHTML += cardProduto(p));
-};
+    .forEach(p => grid.appendChild(cardProduto(p)));
 
-window.abrirCarrinho = () => document.getElementById("carrinho").classList.add("aberto");
-window.fecharCarrinho = () => document.getElementById("carrinho").classList.remove("aberto");
+  container.appendChild(bloco);
+}
 
-window.adicionarCarrinho = function(id) {
+function abrirCarrinhoImpl() { document.getElementById('carrinho').classList.add('aberto'); }
+function fecharCarrinhoImpl() { document.getElementById('carrinho').classList.remove('aberto'); }
+
+function adicionarCarrinhoImpl(id) {
   const produto = produtos.find(p => p.id === id);
   if (!produto) return;
 
   const precoFinal = precoProduto(produto);
 
-  const item = carrinho.find(i => i.id === id);
+  // normalizar sabores: aceitar string separado por vírgula ou array
+  let sabores = produto.sabores;
+  if (typeof sabores === 'string') {
+    sabores = sabores.split(',').map(s => limparTexto(s)).filter(Boolean);
+  }
+
+  // se o produto tem variações, abrir modal de variação
+  if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
+    abrirModalSabores(produto);
+    return;
+  }
+
+  // se o produto tem sabores, abrir modal para escolher
+  if (Array.isArray(sabores) && sabores.length > 0) {
+    console.debug('abrindo modal de sabores para', produto.id, sabores);
+    // garantir que abrirModalSabores receba a lista normalizada
+    abrirModalSabores(Object.assign({}, produto, { sabores }));
+    return;
+  }
+
+  // sem sabores: adicionar direto
+  const item = carrinho.find(i => i.id === id && !i.variacaoId && !i.sabor);
 
   if (item) item.quantidade++;
-  else carrinho.push({
-    id: produto.id,
-    nome: produto.nome,
-    preco: precoFinal,
-    quantidade: 1
-  });
+  else carrinho.push({ id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0) });
 
   atualizarCarrinho();
-  abrirCarrinho();
+  abrirCarrinhoImpl();
 
-};
+}
+
+window.filtrarCategoria = filtrarCategoriaImpl;
+window.pesquisarProdutos = pesquisarProdutosImpl;
+window.abrirCarrinho = abrirCarrinhoImpl;
+window.fecharCarrinho = fecharCarrinhoImpl;
+window.adicionarCarrinho = adicionarCarrinhoImpl;
 
 function atualizarCarrinho() {
   const box = document.getElementById("itensCarrinho");
   box.innerHTML = "";
 
-  if (!carrinho.length) box.innerHTML = `<p>Seu carrinho está vazio.</p>`;
+  if (!carrinho.length) {
+    const p = document.createElement('p'); p.textContent = 'Seu carrinho está vazio.'; box.appendChild(p);
+  }
 
   carrinho.forEach(item => {
-    box.innerHTML += `
-      <div class="item-cart">
-        <strong>${item.quantidade}x ${item.nome}</strong>
-        <small>${formatarMoeda(item.preco * item.quantidade)}</small>
-        <div class="item-actions">
-          <button onclick="alterarItem('${item.id}', -1)">-</button>
-          <button onclick="alterarItem('${item.id}', 1)">+</button>
-        </div>
-      </div>
-    `;
+    const wrapper = document.createElement('div'); wrapper.className = 'item-cart';
+    const strong = document.createElement('strong');
+    strong.textContent = `${item.quantidade}x ${item.nome}${item.sabor ? ' (' + item.sabor + ')' : ''}`;
+    wrapper.appendChild(strong);
+    const small = document.createElement('small'); small.textContent = formatarMoeda(item.preco * item.quantidade); wrapper.appendChild(small);
+    const actions = document.createElement('div'); actions.className = 'item-actions';
+    const btnMinus = document.createElement('button'); btnMinus.textContent = '-'; btnMinus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.id, -1, item.variacaoId, item.sabor));
+    const btnPlus = document.createElement('button'); btnPlus.textContent = '+'; btnPlus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.id, 1, item.variacaoId, item.sabor));
+    actions.appendChild(btnMinus); actions.appendChild(btnPlus); wrapper.appendChild(actions);
+    box.appendChild(wrapper);
   });
 
   const total = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
@@ -224,20 +286,99 @@ function atualizarCarrinho() {
   salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
 }
 
-window.alterarItem = function(id, valor) {
-  const item = carrinho.find(i => i.id === id);
-  if (!item) return;
+function alterarItemImpl(id, valor, variacaoId, sabor) {
+  let itemIndex = -1;
 
+  if (typeof variacaoId !== 'undefined' && variacaoId !== null) {
+    itemIndex = carrinho.findIndex(i => i.id === id && i.variacaoId === variacaoId && i.sabor === sabor);
+  }
+
+  if (itemIndex === -1 && typeof sabor !== 'undefined') {
+    itemIndex = carrinho.findIndex(i => i.id === id && i.sabor === sabor);
+  }
+
+  if (itemIndex === -1) itemIndex = carrinho.findIndex(i => i.id === id && typeof i.sabor === 'undefined' && typeof i.variacaoId === 'undefined');
+  if (itemIndex === -1) return;
+
+  const item = carrinho[itemIndex];
   item.quantidade += valor;
 
   if (item.quantidade <= 0) {
-    carrinho = carrinho.filter(i => i.id !== id);
+    carrinho.splice(itemIndex, 1);
   }
 
   atualizarCarrinho();
-};
+}
 
-window.finalizarPedido = function() {
+// Modal de sabores
+function abrirModalSabores(produto) {
+  pendingSaborProdutoId = produto.id;
+  const modal = document.getElementById('modalSabores');
+  const list = document.getElementById('listaSaboresModal');
+  if (!modal) { console.warn('modalSabores element not found'); alert('Erro: modal de variações não encontrado.'); return; }
+  if (!list) { console.warn('listaSaboresModal element not found'); alert('Erro: lista de opções não encontrada.'); modal.classList.remove('aberto'); return; }
+  list.innerHTML = '';
+
+  const opcoes = Array.isArray(produto.variacoes) && produto.variacoes.length ? produto.variacoes : (produto.sabores || []);
+  const titulo = document.querySelector('#modalSabores h2');
+  if (titulo) titulo.textContent = Array.isArray(produto.variacoes) && produto.variacoes.length ? 'Escolha uma variação' : 'Escolha um sabor';
+
+  if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
+    opcoes
+      .filter(v => v.ativa !== false)
+      .forEach(v => {
+        const btn = document.createElement('button');
+        btn.className = 'sabor-btn';
+        btn.textContent = `${v.nome} – ${Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v.preco)}${v.sobEncomenda ? ' (Sob encomenda)' : ` — ${v.estoque || 0} em estoque`}`;
+        btn.disabled = !v.sobEncomenda && Number(v.estoque || 0) <= 0;
+        btn.addEventListener('click', () => confirmarSabor(produto.id, v));
+        list.appendChild(btn);
+      });
+  } else {
+    opcoes.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sabor-btn';
+      btn.textContent = s;
+      btn.addEventListener('click', () => confirmarSabor(produto.id, s));
+      list.appendChild(btn);
+    });
+  }
+
+  const cancelar = document.getElementById('cancelarSabor');
+  if (cancelar) cancelar.onclick = fecharModalSabores;
+  const fechar = document.getElementById('fecharModalSabores');
+  if (fechar) fechar.onclick = fecharModalSabores;
+
+  modal.classList.add('aberto');
+}
+
+function fecharModalSabores() {
+  const modal = document.getElementById('modalSabores');
+  if (!modal) return;
+  modal.classList.remove('aberto');
+  pendingSaborProdutoId = null;
+}
+
+function confirmarSabor(produtoId, escolha) {
+  const produto = produtos.find(p => p.id === produtoId);
+  if (!produto) return;
+
+  const isVariacao = escolha && typeof escolha === 'object' && escolha.nome;
+  const variacaoId = isVariacao ? escolha.id : undefined;
+  const sabor = isVariacao ? escolha.nome : escolha;
+  const precoFinal = isVariacao ? Number(escolha.preco || precoProduto(produto)) : precoProduto(produto);
+  const estoqueAtual = isVariacao ? Number(escolha.estoque || produto.estoque || 0) : Number(produto.estoque || 0);
+
+  const item = carrinho.find(i => i.id === produtoId && i.variacaoId === variacaoId && i.sabor === sabor);
+  if (item) item.quantidade++;
+  else carrinho.push({ id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual });
+
+  atualizarCarrinho();
+  fecharModalSabores();
+  abrirCarrinhoImpl();
+}
+
+function finalizarPedidoImpl() {
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
     return;
@@ -260,7 +401,7 @@ window.finalizarPedido = function() {
   }
 
   const linhas = carrinho
-    .map(item => `${item.quantidade}x ${item.nome} - ${formatarMoeda(item.preco * item.quantidade)}`)
+    .map(item => `${item.quantidade}x ${item.nome}${item.sabor ? ' (' + item.sabor + ')' : ''} - ${formatarMoeda(item.preco * item.quantidade)}`)
     .join("%0A");
 
   const total = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
@@ -281,3 +422,6 @@ window.finalizarPedido = function() {
   const numero = lojaConfig.whatsapp || APP_CONFIG.whatsapp;
   window.open(`https://wa.me/${numero}?text=${msg}`, "_blank");
 };
+
+window.alterarItem = alterarItemImpl;
+window.finalizarPedido = finalizarPedidoImpl;

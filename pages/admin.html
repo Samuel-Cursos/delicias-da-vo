@@ -33,6 +33,7 @@
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
+      <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
       <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
 
       <a class="site-link" href="../index.html">🌐 Ver site</a>
@@ -200,6 +201,26 @@
         </div>
       </section>
 
+      <section class="aba" id="aba-categorias">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Organização</p>
+            <h2>Categorias</h2>
+            <p>Gerencie as categorias que aparecem no painel e no site.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="primary-btn" onclick="abrirModalCategoria()">➕ Nova categoria</button>
+            <button class="secondary-btn" onclick="criarCategoriasBaseAdmin()">♻️ Restaurar categorias</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Categorias cadastradas</h3>
+          <p>Ative, edite ou exclua categorias do cardápio.</p>
+          <div id="listaCategoriasAdmin" class="lista-promocoes"></div>
+        </div>
+      </section>
+
       <section class="aba" id="aba-config">
         <div class="panel-head">
           <div>
@@ -270,6 +291,17 @@
         <label>Preço<input id="produtoPreco" type="number" step="0.01" /></label>
         <label>Emoji<input id="produtoEmoji" /></label>
         <label class="full">Descrição<textarea id="produtoDescricao"></textarea></label>
+        <label>Imagem do produto<input id="produtoImagemFile" type="file" accept="image/*" /></label>
+        <div class="image-preview-wrap"><img id="produtoImagemPreview" src="" alt="Preview" /></div>
+
+        <div class="variacoes-admin">
+          <div class="variacoes-head">
+            <strong>Variações</strong>
+            <button type="button" class="secondary-btn" id="btnAdicionarVariacao">➕ Adicionar variação</button>
+          </div>
+          <div id="variacoesAdminList"></div>
+        </div>
+
         <label>Sabores <small>separe por vírgula</small><input id="produtoSabores" /></label>
         <label>Estoque<input id="produtoEstoque" type="number" /></label>
         <label>Mínimo<input id="produtoMinimo" type="number" /></label>
@@ -325,6 +357,25 @@
       <div class="modal-actions">
         <button onclick="fecharModalPromocao()">Cancelar</button>
         <button class="primary-btn" onclick="salvarPromocaoAdmin()">Salvar promoção</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCategoria">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fecharModalCategoria()">✕</button>
+      <h2 id="categoriaModalTitulo">Nova categoria</h2>
+
+      <div class="form-grid">
+        <label>Nome<input id="categoriaNome" placeholder="Ex: Snacks"></label>
+        <label>Emoji<input id="categoriaEmoji" placeholder="Ex: 🍿"></label>
+        <label>Ordem<input id="categoriaOrdem" type="number" step="1" placeholder="1"></label>
+        <label class="check"><input id="categoriaAtiva" type="checkbox" checked /> Categoria ativa</label>
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="fecharModalCategoria()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarCategoriaAdmin()">Salvar categoria</button>
       </div>
     </div>
   </div>

@@ -514,3 +514,75 @@ nav button {
         padding: 16px
     }
 }
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.modal.aberto {
+    display: flex;
+}
+
+.modal-box {
+    width: min(560px, 100%);
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.sabores-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.sabor-btn {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #d99559;
+    background: #fff8ed;
+    color: #3a2417;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sabor-btn:hover {
+    background: #fbe9d5;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 900;
+    background: #fff4df;
+    color: #5a2e1d;
+    border: 1px solid #d99559;
+    cursor: pointer;
+}

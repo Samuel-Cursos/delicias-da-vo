@@ -1,4 +1,4 @@
-import { db, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, where } from "../core/firebase.js";
+import { db, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, where } from "../core/firebase.js";
 import { hojeISO, agoraHora } from "../core/utils.js";
 
 export let vendasHoje = [];
@@ -30,9 +30,26 @@ export async function registrarVendaRapida({ itens, pagamento, total, observacao
   await addDoc(collection(db, "vendas"), venda);
 
   for (const item of itens) {
-    const novoEstoque = Math.max(0, Number(item.estoqueAtual || 0) - Number(item.quantidade || 0));
+    const produtoRef = doc(db, "produtos", item.id);
+    const produtoSnap = await getDoc(produtoRef);
+    if (!produtoSnap.exists()) continue;
 
-    await updateDoc(doc(db, "produtos", item.id), {
+    if (item.variacaoId) {
+      const produtoData = produtoSnap.data();
+      const variacoes = Array.isArray(produtoData.variacoes) ? produtoData.variacoes : [];
+      const index = variacoes.findIndex(v => v.id === item.variacaoId);
+      if (index >= 0) {
+        const novoEstoque = Math.max(0, Number(variacoes[index].estoque || 0) - Number(item.quantidade || 0));
+        await updateDoc(produtoRef, {
+          [`variacoes.${index}.estoque`]: novoEstoque,
+          atualizadoEm: serverTimestamp()
+        });
+        continue;
+      }
+    }
+
+    const novoEstoque = Math.max(0, Number(item.estoqueAtual || 0) - Number(item.quantidade || 0));
+    await updateDoc(produtoRef, {
       estoque: novoEstoque,
       atualizadoEm: serverTimestamp()
     });
@@ -47,9 +64,25 @@ export async function excluirVendaComEstorno(venda) {
   }
 
   for (const item of venda.itens || []) {
-    const estoqueRestaurado = Number(item.estoqueAtual || 0);
+    const produtoRef = doc(db, "produtos", item.id);
+    const produtoSnap = await getDoc(produtoRef);
+    if (!produtoSnap.exists()) continue;
 
-    await updateDoc(doc(db, "produtos", item.id), {
+    if (item.variacaoId) {
+      const produtoData = produtoSnap.data();
+      const variacoes = Array.isArray(produtoData.variacoes) ? produtoData.variacoes : [];
+      const index = variacoes.findIndex(v => v.id === item.variacaoId);
+      if (index >= 0) {
+        await updateDoc(produtoRef, {
+          [`variacoes.${index}.estoque`]: Number(item.estoqueAtual || 0),
+          atualizadoEm: serverTimestamp()
+        });
+        continue;
+      }
+    }
+
+    const estoqueRestaurado = Number(item.estoqueAtual || 0);
+    await updateDoc(produtoRef, {
       estoque: estoqueRestaurado,
       atualizadoEm: serverTimestamp()
     });
