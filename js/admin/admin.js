@@ -649,6 +649,11 @@ function preencherSelectProdutosPromocao() {
   if (!select) return;
   select.innerHTML = '';
 
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = '-- Selecione um produto (ou deixe em branco para aplicar por categoria) --';
+  select.appendChild(noneOpt);
+
   produtos
     .filter(p => p.ativo !== false)
     .forEach(p => {
@@ -668,6 +673,8 @@ function abrirModalPromocao(id = null) {
   document.getElementById("promoTitulo").value = promocaoEditando?.titulo || "";
   document.getElementById("promoAtiva").value = String(promocaoEditando?.ativa ?? true);
   document.getElementById("promoProduto").value = promocaoEditando?.produtoId || "";
+  document.getElementById("promoCategoria").value = promocaoEditando?.categoria || "";
+  document.getElementById("promoVariacao").value = promocaoEditando?.variacaoId || "";
   document.getElementById("promoPreco").value = promocaoEditando?.precoPromocional || "";
   document.getElementById("promoDescricao").value = promocaoEditando?.descricao || "";
   document.getElementById("promoInicio").value = promocaoEditando?.inicio || "";
@@ -684,6 +691,8 @@ function fecharModalPromocao() {
 async function salvarPromocaoAdmin() {
   const titulo = limparTexto(document.getElementById("promoTitulo").value);
   const produtoId = document.getElementById("promoProduto").value;
+  const categoria = document.getElementById("promoCategoria").value;
+  const variacaoId = document.getElementById("promoVariacao").value;
   const precoPromocional = Number(document.getElementById("promoPreco").value || 0);
   const produto = produtos.find(p => p.id === produtoId);
 
@@ -692,8 +701,13 @@ async function salvarPromocaoAdmin() {
     return;
   }
 
-  if (!produto) {
-    alert("Escolha um produto.");
+  if (!produtoId && !categoria) {
+    alert("Escolha um produto ou uma categoria.");
+    return;
+  }
+
+  if (variacaoId && !produtoId) {
+    alert("Selecione um produto antes da variação.");
     return;
   }
 
@@ -703,14 +717,18 @@ async function salvarPromocaoAdmin() {
   }
 
   const id = promocaoEditando?.id || gerarId(titulo);
+  const variacaoOriginal = produto?.variacoes?.find(v => v.id === variacaoId);
+  const precoOriginal = variacaoOriginal ? Number(variacaoOriginal.preco || produto.preco) : Number(produto?.preco || 0);
 
   await salvarPromocao({
     id,
     titulo,
-    produtoId,
-    produtoNome: produto.nome,
-    produtoEmoji: produto.emoji || "🍽️",
-    precoOriginal: produto.preco,
+    produtoId: produtoId || null,
+    categoria: categoria || null,
+    variacaoId: variacaoId || null,
+    produtoNome: produto?.nome || null,
+    produtoEmoji: produto?.emoji || "🍽️",
+    precoOriginal,
     precoPromocional,
     descricao: limparTexto(document.getElementById("promoDescricao").value),
     inicio: document.getElementById("promoInicio").value,

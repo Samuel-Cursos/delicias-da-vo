@@ -1,4 +1,5 @@
 import { db, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "../core/firebase.js";
+import { hojeISO } from "../core/utils.js";
 
 export let promocoes = [];
 
@@ -10,6 +11,33 @@ export function observarPromocoes(callback) {
 
     callback(promocoes);
   });
+}
+
+export function promocaoValida(promocao) {
+  if (!promocao || !promocao.ativa) return false;
+  const hoje = hojeISO();
+  const inicioOk = !promocao.inicio || promocao.inicio <= hoje;
+  const fimOk = !promocao.fim || promocao.fim >= hoje;
+  return inicioOk && fimOk;
+}
+
+export function promocaoAtivaParaProduto(produto, variacaoId) {
+  const regras = promocoes.filter(promocaoValida);
+
+  if (!produto) return null;
+
+  if (variacaoId) {
+    const promoVariacao = regras.find(p => p.variacaoId === variacaoId && p.produtoId === produto.id);
+    if (promoVariacao) return promoVariacao;
+  }
+
+  const promoProduto = regras.find(p => p.produtoId === produto.id && !p.variacaoId);
+  if (promoProduto) return promoProduto;
+
+  const promoCategoria = regras.find(p => p.categoria === produto.categoria && !p.produtoId && !p.variacaoId);
+  if (promoCategoria) return promoCategoria;
+
+  return null;
 }
 
 export async function salvarPromocao(promocao) {
@@ -29,18 +57,4 @@ export async function atualizarPromocao(id, dados) {
 
 export async function excluirPromocao(id) {
   await deleteDoc(doc(db, "promocoes", id));
-}
-
-export function promocaoAtivaParaProduto(produtoId) {
-  const hoje = new Date().toISOString().slice(0, 10);
-
-  return promocoes.find(p => {
-    if (!p.ativa) return false;
-    if (p.produtoId !== produtoId) return false;
-
-    const inicioOk = !p.inicio || p.inicio <= hoje;
-    const fimOk = !p.fim || p.fim >= hoje;
-
-    return inicioOk && fimOk;
-  });
 }
