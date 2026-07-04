@@ -1,7 +1,7 @@
 import { iniciarAuth } from "../core/auth.js";
 import { formatarMoeda, limparTexto, gerarId } from "../core/utils.js";
 import { produtos, observarProdutos, criarProdutosBase, salvarProduto, atualizarProduto, excluirProduto, statusEstoque } from "../services/productService.js";
-import { categorias, categoriasBase, observarCategorias } from "../services/categoryService.js";
+import { categorias, categoriasBase, observarCategorias, normalizarCategorias, categoriaPorId } from "../services/categoryService.js";
 import { registrarVendaRapida, observarVendasHoje, vendasHoje, resumoCaixa, excluirVendaComEstorno } from "../services/salesService.js";
 import { lojaConfig, observarConfiguracoesLoja, salvarConfiguracoes } from "../services/configService.js";
 import { promocoes, observarPromocoes, salvarPromocao, atualizarPromocao, excluirPromocao } from "../services/promotionService.js";
@@ -55,6 +55,7 @@ function abrirAba(nome, botao) {
     venda: "Venda rápida",
     caixa: "Caixa",
     promocoes: "Promoções",
+    categorias: "Categorias",
     config: "Configurações"
   };
 
@@ -156,8 +157,7 @@ function preencherSelectCategorias() {
 
   select.innerHTML = "";
 
-  const categoriasVisiveis = categorias.length ? categorias : categoriasBase;
-  const ordenadas = categoriasVisiveis.slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  const ordenadas = normalizarCategorias(categorias.length ? categorias : categoriasBase).filter(categoria => categoria.ativa !== false);
 
   ordenadas.forEach(categoria => {
     const option = document.createElement("option");
@@ -165,6 +165,26 @@ function preencherSelectCategorias() {
     option.textContent = `${categoria.emoji || "🏷️"} ${categoria.nome}`;
     select.appendChild(option);
   });
+}
+
+function atualizarCampoSelecaoProduto() {
+  const select = document.getElementById("produtoCategoria");
+  const label = document.getElementById("produtoSaboresLabel");
+  if (!select || !label) return;
+
+  const categoria = categoriaPorId(select.value);
+  const titulo = categoria?.tituloSelecao || "Escolha uma opção";
+  const textoCurto = titulo
+    .replace(/^escolha\s+(o|a|um|uma)\s+/i, "")
+    .replace(/^selecione\s+(o|a|um|uma)\s+/i, "")
+    .trim();
+
+  const nomeCampo = textoCurto ? textoCurto.charAt(0).toUpperCase() + textoCurto.slice(1) : "Opções";
+
+  const input = label.querySelector("input");
+  label.firstChild.textContent = `${nomeCampo} `;
+  label.querySelector("small").textContent = "separe por vírgula";
+  label.appendChild(input);
 }
 
 function criarVariacaoAdminItem(variacao = {}) {
@@ -283,6 +303,7 @@ function abrirModalProduto(id = null) {
   document.getElementById("modalTitulo").textContent = produtoEditando ? "Editar produto" : "Novo produto";
   document.getElementById("produtoNome").value = produtoEditando?.nome || "";
   document.getElementById("produtoCategoria").value = produtoEditando?.categoria || "salgados";
+  atualizarCampoSelecaoProduto();
   document.getElementById("produtoPreco").value = produtoEditando?.preco || "";
   document.getElementById("produtoEmoji").value = produtoEditando?.emoji || "";
   document.getElementById("produtoDescricao").value = produtoEditando?.descricao || "";
@@ -846,4 +867,5 @@ window.abrirModalCategoria = abrirModalCategoria;
 window.fecharModalCategoria = fecharModalCategoria;
 window.salvarCategoriaAdmin = salvarCategoriaAdmin;
 window.criarCategoriasBaseAdmin = criarCategoriasBaseAdmin;
+window.atualizarCampoSelecaoProduto = atualizarCampoSelecaoProduto;
 window.salvarConfiguracoesLoja = salvarConfiguracoesLoja;

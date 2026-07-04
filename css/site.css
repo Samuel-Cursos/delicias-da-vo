@@ -586,3 +586,39 @@ nav button {
     border: 1px solid #d99559;
     cursor: pointer;
 }
+
+
+/* V4.1 - ajustes de seleção no carrinho */
+.item-sabor {
+  display: block;
+  color: #7a5a43;
+  margin: 4px 0;
+  font-size: .88rem;
+}
+
+.sabores-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.sabor-btn {
+  width: 100%;
+  background: #fff;
+  border: 2px solid #f0d2b2;
+  border-radius: 16px;
+  padding: 13px;
+  color: #3a2417;
+  font-weight: 900;
+  text-align: left;
+}
+
+.sabor-btn:hover {
+  border-color: #5a2e1d;
+  background: #fff4df;
+}
+
+.sabor-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}

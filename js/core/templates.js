@@ -66,15 +66,9 @@ export function createProductCard(produto, options = {}) {
   btn.textContent = options.buttonText || (options.available ? 'Adicionar' : 'Indisponível');
   if (!options.available) btn.disabled = true;
   btn.type = 'button';
-  btn.addEventListener('click', (e) => {
-    console.log('createProductCard: add button clicked', produto.id, produto.sabores);
+  btn.addEventListener('click', () => {
     if (typeof window.adicionarCarrinho === 'function') window.adicionarCarrinho(produto.id);
   });
-  // fallback inline handler in case addEventListener is not reachable
-  btn.onclick = () => {
-    console.log('createProductCard: fallback onclick', produto.id);
-    if (typeof window.adicionarCarrinho === 'function') window.adicionarCarrinho(produto.id);
-  };
   card.appendChild(btn);
 
   return card;

@@ -117,3 +117,21 @@ button{cursor:pointer;border:0}
   .form-grid{grid-template-columns:1fr}
   .venda-atual-card{position:static}
 }
+
+
+/* V4.1 - Categorias */
+.categoria-admin {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.categoria-admin p {
+  color: var(--muted);
+  margin-top: 4px;
+}

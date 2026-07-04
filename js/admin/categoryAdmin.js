@@ -23,7 +23,7 @@ export function renderCategoriasAdmin() {
     const row = document.createElement('div'); row.className = 'categoria-admin';
     const info = document.createElement('div');
     const strong = document.createElement('strong'); strong.textContent = `${categoria.emoji || '🏷️'} ${categoria.nome}`; info.appendChild(strong);
-    const meta = document.createElement('p'); meta.textContent = `Ordem: ${categoria.ordem || 0} · ${categoria.ativa ? 'Ativa' : 'Inativa'}`; info.appendChild(meta);
+    const meta = document.createElement('p'); meta.textContent = `Ordem: ${categoria.ordem || 0} · ${categoria.ativa ? 'Ativa' : 'Inativa'} · ${categoria.tituloSelecao || 'Escolha uma opção'}`; info.appendChild(meta);
 
     const actions = document.createElement('div'); actions.className = 'actions';
     const btnEdit = document.createElement('button'); btnEdit.textContent = 'Editar'; btnEdit.addEventListener('click', () => abrirModalCategoria(categoria.id));
@@ -49,6 +49,7 @@ export function abrirModalCategoria(id = null) {
   document.getElementById('categoriaNome').value = categoriaEditando?.nome || '';
   document.getElementById('categoriaEmoji').value = categoriaEditando?.emoji || '';
   document.getElementById('categoriaOrdem').value = categoriaEditando?.ordem || 0;
+  document.getElementById('categoriaTituloSelecao').value = categoriaEditando?.tituloSelecao || 'Escolha uma opção';
   document.getElementById('categoriaAtiva').checked = categoriaEditando?.ativa ?? true;
 
   document.getElementById('modalCategoria').classList.add('aberto');
@@ -63,6 +64,7 @@ export async function salvarCategoriaAdmin() {
   const nome = limparTexto(document.getElementById('categoriaNome').value);
   const emoji = document.getElementById('categoriaEmoji').value || '🏷️';
   const ordem = Number(document.getElementById('categoriaOrdem').value || 0);
+  const tituloSelecao = limparTexto(document.getElementById('categoriaTituloSelecao').value) || 'Escolha uma opção';
   const ativa = document.getElementById('categoriaAtiva').checked;
 
   if (!nome) {
@@ -77,6 +79,7 @@ export async function salvarCategoriaAdmin() {
     nome,
     emoji,
     ordem,
+    tituloSelecao,
     ativa
   });
 

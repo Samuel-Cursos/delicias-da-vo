@@ -1,42 +1,58 @@
-ATUALIZAÇÃO V4 RECUPERAÇÃO CORRETA
+ATUALIZAÇÃO V4.1 - CARRINHO + CATEGORIAS
 
-Essa atualização foi feita em cima do ZIP completo que você mandou.
-Ela recupera as melhorias sem quebrar o site.
+Feita em cima do último ZIP que você enviou.
 
-INCLUI:
-- Visual melhorado do painel.
-- Dashboard com atalhos.
-- Venda rápida.
-- Confirmação antes de finalizar venda.
-- Apagar venda no histórico.
-- Restauração de estoque ao apagar venda.
-- Caixa do dia.
-- Configurações da loja.
-- WhatsApp editável pelo painel.
-- IA simples no cadastro de produto.
-- Promoções completas.
-- Seção Promoções visível no site.
-- Promoção com preço antigo riscado.
-- Carrinho usando preço promocional.
-- Administrador padrão: deliciasdavo54@gmail.com.
+O QUE MUDA:
+1. Carrinho com sabores/opções/tamanhos:
+- Produto sem escolha adiciona direto.
+- Produto com sabores/variações abre modal.
+- O título do modal vem da categoria:
+  Ex: "Escolha o sabor", "Escolha a opção", "Escolha o tamanho".
+- A opção escolhida aparece no carrinho.
+- A opção escolhida vai no WhatsApp.
+- Produto igual com opção diferente fica separado no carrinho.
+
+2. Categorias dinâmicas:
+- Categoria agora tem "Texto da escolha".
+- Exemplo:
+  Salgados -> Escolha o sabor
+  Bebidas -> Escolha a opção
+  Marmitas -> Escolha o tamanho
+- O campo de cadastro do produto muda de nome conforme a categoria.
+- O site usa categorias do Firebase.
+- Corrige clique duplicado no botão Adicionar dos cards.
+
+ARQUIVOS ALTERADOS:
+- index.html
+- pages/admin.html
+- css/site.css
+- css/admin.css
+- js/storefront/site.js
+- js/admin/admin.js
+- js/admin/categoryAdmin.js
+- js/services/categoryService.js
+- js/core/templates.js
 
 COMO INSTALAR:
 1. Extraia este ZIP.
-2. Copie tudo que está dentro:
-   - api
-   - css
-   - js
-   - pages
-   - index.html
-   - manifest.json
-3. Cole dentro da pasta principal do projeto.
-4. Clique em Substituir arquivos.
+2. Copie tudo de dentro.
+3. Cole por cima da pasta principal do projeto.
+4. Substitua os arquivos.
+5. Teste antes de commitar.
+
+TESTE OBRIGATÓRIO:
+- Abra o site.
+- Clique em Coxinha.
+- Escolha Frango.
+- Veja se aparece no carrinho.
+- Adicione Coxinha Carne.
+- Veja se ficou separada.
+- Finalize e confira se vai no WhatsApp.
+- Abra ADM > Categorias.
+- Edite Bebidas e coloque "Escolha a opção".
+- Edite Marmitas e coloque "Escolha o tamanho".
 
 DEPOIS DE TESTAR:
 git add .
-git commit -m "V4 Recuperacao Correta"
+git commit -m "V4.1 carrinho e categorias"
 git push
-
-IMPORTANTE:
-Não use mais os patches antigos da Stable 04.
-Esse patch foi feito usando o projeto que você enviou como base.

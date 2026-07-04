@@ -2,7 +2,7 @@ import { iniciarAuth } from "../core/auth.js";
 import { APP_CONFIG } from "../core/config.js";
 import { formatarMoeda, limparTexto, salvarLocal, carregarLocal } from "../core/utils.js";
 import { produtos, observarProdutos, statusEstoque } from "../services/productService.js";
-import { categorias, categoriasBase, observarCategorias } from "../services/categoryService.js";
+import { categorias, categoriasBase, observarCategorias, normalizarCategorias, categoriaPorId } from "../services/categoryService.js";
 import { lojaConfig, observarConfiguracoesLoja } from "../services/configService.js";
 import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../services/promotionService.js";
 import { createProductCard } from "../core/templates.js";
@@ -155,8 +155,7 @@ function renderizarProdutos(categoria = "todos") {
     return;
   }
 
-  const categoriasVisiveis = categorias.length ? categorias : categoriasBase;
-  const categoriasAtivas = categoriasVisiveis.filter(c => c.ativa !== false).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  const categoriasAtivas = normalizarCategorias(categorias.length ? categorias : categoriasBase).filter(c => c.ativa !== false);
 
   categoriasAtivas.forEach(cat => renderizarGrupo(container, cat.id, `${cat.emoji || '🏷️'} ${cat.nome}`, cat.descricao || ''));
 }
@@ -165,8 +164,7 @@ function renderCategoriasSite() {
   const container = document.getElementById('categoriasSite');
   if (!container) return;
 
-  const categoriasVisiveis = categorias.length ? categorias : categoriasBase;
-  const categoriasAtivas = categoriasVisiveis.filter(c => c.ativa !== false).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  const categoriasAtivas = normalizarCategorias(categorias.length ? categorias : categoriasBase).filter(c => c.ativa !== false);
   container.innerHTML = '';
 
   const todosBtn = document.createElement('button');
@@ -203,7 +201,7 @@ function pesquisarProdutosImpl() {
     .filter(p =>
       p.nome.toLowerCase().includes(termo) ||
       (p.descricao || '').toLowerCase().includes(termo) ||
-      p.categoria.includes(termo)
+      (p.categoria || '').includes(termo)
     )
     .forEach(p => grid.appendChild(cardProduto(p)));
 
@@ -212,6 +210,11 @@ function pesquisarProdutosImpl() {
 
 function abrirCarrinhoImpl() { document.getElementById('carrinho').classList.add('aberto'); }
 function fecharCarrinhoImpl() { document.getElementById('carrinho').classList.remove('aberto'); }
+
+
+function chaveCarrinho(produtoId, variacaoId = "", sabor = "") {
+  return `${produtoId}__${variacaoId || ""}__${sabor || ""}`;
+}
 
 function adicionarCarrinhoImpl(id) {
   const produto = produtos.find(p => p.id === id);
@@ -240,10 +243,11 @@ function adicionarCarrinhoImpl(id) {
   }
 
   // sem sabores: adicionar direto
-  const item = carrinho.find(i => i.id === id && !i.variacaoId && !i.sabor);
+  const chave = chaveCarrinho(produto.id);
+  const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
 
   if (item) item.quantidade++;
-  else carrinho.push({ id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0) });
+  else carrinho.push({ chave, id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0) });
 
   atualizarCarrinho();
   abrirCarrinhoImpl();
@@ -267,12 +271,18 @@ function atualizarCarrinho() {
   carrinho.forEach(item => {
     const wrapper = document.createElement('div'); wrapper.className = 'item-cart';
     const strong = document.createElement('strong');
-    strong.textContent = `${item.quantidade}x ${item.nome}${item.sabor ? ' (' + item.sabor + ')' : ''}`;
+    strong.textContent = `${item.quantidade}x ${item.nome}`;
     wrapper.appendChild(strong);
+    if (item.sabor) {
+      const saborSpan = document.createElement('span');
+      saborSpan.className = 'item-sabor';
+      saborSpan.textContent = `Opção: ${item.sabor}`;
+      wrapper.appendChild(saborSpan);
+    }
     const small = document.createElement('small'); small.textContent = formatarMoeda(item.preco * item.quantidade); wrapper.appendChild(small);
     const actions = document.createElement('div'); actions.className = 'item-actions';
-    const btnMinus = document.createElement('button'); btnMinus.textContent = '-'; btnMinus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.id, -1, item.variacaoId, item.sabor));
-    const btnPlus = document.createElement('button'); btnPlus.textContent = '+'; btnPlus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.id, 1, item.variacaoId, item.sabor));
+    const btnMinus = document.createElement('button'); btnMinus.textContent = '-'; btnMinus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.chave || chaveCarrinho(item.id, item.variacaoId, item.sabor), -1));
+    const btnPlus = document.createElement('button'); btnPlus.textContent = '+'; btnPlus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.chave || chaveCarrinho(item.id, item.variacaoId, item.sabor), 1));
     actions.appendChild(btnMinus); actions.appendChild(btnPlus); wrapper.appendChild(actions);
     box.appendChild(wrapper);
   });
@@ -286,18 +296,8 @@ function atualizarCarrinho() {
   salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
 }
 
-function alterarItemImpl(id, valor, variacaoId, sabor) {
-  let itemIndex = -1;
-
-  if (typeof variacaoId !== 'undefined' && variacaoId !== null) {
-    itemIndex = carrinho.findIndex(i => i.id === id && i.variacaoId === variacaoId && i.sabor === sabor);
-  }
-
-  if (itemIndex === -1 && typeof sabor !== 'undefined') {
-    itemIndex = carrinho.findIndex(i => i.id === id && i.sabor === sabor);
-  }
-
-  if (itemIndex === -1) itemIndex = carrinho.findIndex(i => i.id === id && typeof i.sabor === 'undefined' && typeof i.variacaoId === 'undefined');
+function alterarItemImpl(chave, valor) {
+  const itemIndex = carrinho.findIndex(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
   if (itemIndex === -1) return;
 
   const item = carrinho[itemIndex];
@@ -321,7 +321,10 @@ function abrirModalSabores(produto) {
 
   const opcoes = Array.isArray(produto.variacoes) && produto.variacoes.length ? produto.variacoes : (produto.sabores || []);
   const titulo = document.querySelector('#modalSabores h2');
-  if (titulo) titulo.textContent = Array.isArray(produto.variacoes) && produto.variacoes.length ? 'Escolha uma variação' : 'Escolha um sabor';
+  if (titulo) {
+    const categoria = categoriaPorId(produto.categoria);
+    titulo.textContent = categoria?.tituloSelecao || (Array.isArray(produto.variacoes) && produto.variacoes.length ? 'Escolha uma variação' : 'Escolha um sabor');
+  }
 
   if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
     opcoes
@@ -369,9 +372,10 @@ function confirmarSabor(produtoId, escolha) {
   const precoFinal = isVariacao ? Number(escolha.preco || precoProduto(produto)) : precoProduto(produto);
   const estoqueAtual = isVariacao ? Number(escolha.estoque || produto.estoque || 0) : Number(produto.estoque || 0);
 
-  const item = carrinho.find(i => i.id === produtoId && i.variacaoId === variacaoId && i.sabor === sabor);
+  const chave = chaveCarrinho(produto.id, variacaoId, sabor);
+  const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
   if (item) item.quantidade++;
-  else carrinho.push({ id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual });
+  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual });
 
   atualizarCarrinho();
   fecharModalSabores();
@@ -401,8 +405,11 @@ function finalizarPedidoImpl() {
   }
 
   const linhas = carrinho
-    .map(item => `${item.quantidade}x ${item.nome}${item.sabor ? ' (' + item.sabor + ')' : ''} - ${formatarMoeda(item.preco * item.quantidade)}`)
-    .join("%0A");
+    .map(item => {
+      const escolha = item.sabor ? `%0A• Opção: ${item.sabor}` : '';
+      return `${item.quantidade}x ${item.nome}${escolha}%0A${formatarMoeda(item.preco * item.quantidade)}`;
+    })
+    .join("%0A%0A");
 
   const total = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
 

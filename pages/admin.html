@@ -281,7 +281,7 @@
       <div class="form-grid">
         <label>Nome<input id="produtoNome" /></label>
         <label>Categoria
-          <select id="produtoCategoria">
+          <select id="produtoCategoria" onchange="atualizarCampoSelecaoProduto()">
             <option value="salgados">Salgados</option>
             <option value="paes">Pães</option>
             <option value="bebidas">Bebidas</option>
@@ -302,7 +302,7 @@
           <div id="variacoesAdminList"></div>
         </div>
 
-        <label>Sabores <small>separe por vírgula</small><input id="produtoSabores" /></label>
+        <label id="produtoSaboresLabel">Sabores <small>separe por vírgula</small><input id="produtoSabores" /></label>
         <label>Estoque<input id="produtoEstoque" type="number" /></label>
         <label>Mínimo<input id="produtoMinimo" type="number" /></label>
         <label class="check"><input id="produtoAtivo" type="checkbox" checked /> Produto ativo</label>
@@ -380,6 +380,7 @@
         <label>Nome<input id="categoriaNome" placeholder="Ex: Snacks"></label>
         <label>Emoji<input id="categoriaEmoji" placeholder="Ex: 🍿"></label>
         <label>Ordem<input id="categoriaOrdem" type="number" step="1" placeholder="1"></label>
+        <label class="full">Texto da escolha<input id="categoriaTituloSelecao" placeholder="Ex: Escolha o sabor"></label>
         <label class="check"><input id="categoriaAtiva" type="checkbox" checked /> Categoria ativa</label>
       </div>
 
