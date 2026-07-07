@@ -948,12 +948,19 @@ function preencherConfiguracoesLoja() {
     configEntrega: lojaConfig.entrega || "Taxa conforme distância",
     configRetirada: lojaConfig.retirada || "Retirada na loja",
     configStatusLoja: lojaConfig.statusLoja || "aberta",
+    cardapioDiaTituloInput: lojaConfig.cardapioDia?.titulo || "Cardápio de hoje",
+    cardapioDiaItensInput: Array.isArray(lojaConfig.cardapioDia?.itens) ? lojaConfig.cardapioDia.itens.join("\n") : "",
+    cardapioDiaObsInput: lojaConfig.cardapioDia?.observacao || "Disponível enquanto durar",
   };
 
   Object.entries(campos).forEach(([id, valor]) => {
     const el = document.getElementById(id);
     if (el) el.value = valor;
   });
+
+  const cardapioAtivo = document.getElementById("cardapioDiaAtivo");
+  if (cardapioAtivo) cardapioAtivo.checked = lojaConfig.cardapioDia?.ativo === true;
+
   renderHorariosAtendimento();
 }
 
@@ -968,7 +975,16 @@ async function salvarConfiguracoesLoja() {
     entrega: limparTexto(document.getElementById("configEntrega").value),
     retirada: limparTexto(document.getElementById("configRetirada").value),
    statusLoja: document.getElementById("configStatusLoja").value,
-horariosAtendimento: coletarHorariosAtendimento()
+horariosAtendimento: coletarHorariosAtendimento(),
+    cardapioDia: {
+      ativo: document.getElementById("cardapioDiaAtivo")?.checked || false,
+      titulo: limparTexto(document.getElementById("cardapioDiaTituloInput")?.value) || "Cardápio de hoje",
+      itens: (document.getElementById("cardapioDiaItensInput")?.value || "")
+        .split("\n")
+        .map(item => limparTexto(item))
+        .filter(Boolean),
+      observacao: limparTexto(document.getElementById("cardapioDiaObsInput")?.value) || ""
+    }
   };
 
   await salvarConfiguracoes(dados);

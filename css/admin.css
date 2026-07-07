@@ -188,3 +188,14 @@ button{cursor:pointer;border:0}
   font-weight: 900;
   font-size: .9rem;
 }
+
+/* V4.3 - Cardápio do Dia */
+#cardapioDiaItensInput {
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.full-config .check {
+  margin: 10px 0;
+}

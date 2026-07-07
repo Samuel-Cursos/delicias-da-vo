@@ -676,3 +676,85 @@ nav button {
     flex: 0 0 auto !important;
   }
 }
+
+/* V4.3 - Cardápio do Dia */
+.cardapio-dia-section {
+  margin: 24px 0;
+}
+
+.cardapio-dia-card {
+  background: linear-gradient(135deg, #fff8ed, #ffe9bd);
+  border: 1px solid #f0d2b2;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 18px 45px rgba(90, 46, 29, .12);
+}
+
+.cardapio-dia-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.cardapio-dia-head h2 {
+  font-size: 1.8rem;
+  color: #3a2417;
+  margin-top: 8px;
+}
+
+.cardapio-dia-head p {
+  color: #7a5a43;
+  margin-top: 6px;
+}
+
+.btn-cardapio-dia {
+  background: #5a2e1d;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cardapio-dia-itens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cardapio-dia-itens span {
+  background: #fff;
+  border: 1px solid #f0d2b2;
+  color: #3a2417;
+  padding: 10px 13px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+@media (max-width: 700px) {
+  .cardapio-dia-card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .cardapio-dia-head {
+    flex-direction: column;
+  }
+
+  .btn-cardapio-dia {
+    width: 100%;
+    text-align: center;
+  }
+
+  .cardapio-dia-itens {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .cardapio-dia-itens span {
+    border-radius: 14px;
+  }
+}

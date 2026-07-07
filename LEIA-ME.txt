@@ -1,58 +1,41 @@
-ATUALIZAÇÃO V4.1 - CARRINHO + CATEGORIAS
+ATUALIZAÇÃO V4.3 - CARDÁPIO DO DIA
 
-Feita em cima do último ZIP que você enviou.
+Feita em cima do ZIP atual que você enviou.
 
-O QUE MUDA:
-1. Carrinho com sabores/opções/tamanhos:
-- Produto sem escolha adiciona direto.
-- Produto com sabores/variações abre modal.
-- O título do modal vem da categoria:
-  Ex: "Escolha o sabor", "Escolha a opção", "Escolha o tamanho".
-- A opção escolhida aparece no carrinho.
-- A opção escolhida vai no WhatsApp.
-- Produto igual com opção diferente fica separado no carrinho.
-
-2. Categorias dinâmicas:
-- Categoria agora tem "Texto da escolha".
-- Exemplo:
-  Salgados -> Escolha o sabor
-  Bebidas -> Escolha a opção
-  Marmitas -> Escolha o tamanho
-- O campo de cadastro do produto muda de nome conforme a categoria.
-- O site usa categorias do Firebase.
-- Corrige clique duplicado no botão Adicionar dos cards.
+O QUE ENTRA:
+- Novo bloco no ADM > Configurações: "🍛 Cardápio do Dia".
+- Campo para ativar/desativar.
+- Campo de título.
+- Campo de itens, um por linha.
+- Campo de observação.
+- Card novo no site, antes das promoções.
+- Botão "Ver marmitas" levando ao cardápio.
+- Se estiver desativado ou sem itens, não aparece no site.
 
 ARQUIVOS ALTERADOS:
 - index.html
 - pages/admin.html
-- css/site.css
-- css/admin.css
-- js/storefront/site.js
 - js/admin/admin.js
-- js/admin/categoryAdmin.js
-- js/services/categoryService.js
-- js/core/templates.js
+- js/storefront/site.js
+- css/admin.css
+- css/site.css
 
 COMO INSTALAR:
 1. Extraia este ZIP.
-2. Copie tudo de dentro.
+2. Copie todos os arquivos/pastas de dentro.
 3. Cole por cima da pasta principal do projeto.
 4. Substitua os arquivos.
-5. Teste antes de commitar.
+5. Abra o ADM > Configurações.
+6. Ative Cardápio do Dia, preencha itens e clique em Salvar configurações.
+7. Abra o site e veja se o card aparece.
 
-TESTE OBRIGATÓRIO:
-- Abra o site.
-- Clique em Coxinha.
-- Escolha Frango.
-- Veja se aparece no carrinho.
-- Adicione Coxinha Carne.
-- Veja se ficou separada.
-- Finalize e confira se vai no WhatsApp.
-- Abra ADM > Categorias.
-- Edite Bebidas e coloque "Escolha a opção".
-- Edite Marmitas e coloque "Escolha o tamanho".
+TESTE:
+- Ativar cardápio -> aparece no site.
+- Desativar cardápio -> some do site.
+- Trocar itens -> atualiza no site.
+- Testar no celular.
 
-DEPOIS DE TESTAR:
+DEPOIS QUE FUNCIONAR:
 git add .
-git commit -m "V4.1 carrinho e categorias"
-git push
+git commit -m "V4.3 - Cardapio do dia"
+git push origin main

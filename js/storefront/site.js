@@ -27,6 +27,7 @@ observarCategorias(() => {
 
 observarConfiguracoesLoja(() => {
   aplicarConfiguracoesSite();
+  renderCardapioDiaSite();
 });
 
 observarPromocoes(() => {
@@ -54,6 +55,44 @@ function aplicarConfiguracoesSite() {
   status.textContent = resultado.texto;
 }
 }
+
+
+function renderCardapioDiaSite() {
+  const section = document.getElementById("cardapioDiaSite");
+  if (!section) return;
+
+  const cardapio = lojaConfig.cardapioDia || {};
+  const itens = Array.isArray(cardapio.itens) ? cardapio.itens.filter(Boolean) : [];
+
+  if (!cardapio.ativo || !itens.length) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "block";
+
+  const titulo = document.getElementById("cardapioDiaTitulo");
+  const observacao = document.getElementById("cardapioDiaObservacao");
+  const lista = document.getElementById("cardapioDiaItens");
+
+  if (titulo) titulo.textContent = cardapio.titulo || "Cardápio de hoje";
+
+  if (observacao) {
+    observacao.textContent = cardapio.observacao || "";
+    observacao.style.display = cardapio.observacao ? "block" : "none";
+  }
+
+  if (lista) {
+    lista.innerHTML = "";
+
+    itens.forEach(item => {
+      const el = document.createElement("span");
+      el.textContent = item;
+      lista.appendChild(el);
+    });
+  }
+}
+
 
 function calcularStatusAtendimento() {
   const horarios = lojaConfig.horariosAtendimento || {};
