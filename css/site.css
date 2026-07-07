@@ -627,25 +627,45 @@ nav button {
     position: fixed;
     top: 0;
     right: -100vw;
-    left: auto;
     width: 100vw;
-    max-width: 100vw;
     height: 100dvh;
+    max-height: 100dvh;
+    padding: 14px;
     border-radius: 0;
-    padding: 16px;
     z-index: 9999;
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .carrinho.aberto {
     right: 0;
   }
 
-  body:has(.carrinho.aberto) {
-    overflow: hidden;
+  .cart-head {
+    flex: 0 0 auto;
   }
 
   .itens-carrinho {
-    max-height: none;
+    flex: 1 1 auto;
+    min-height: 80px;
     overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .total,
+  .formulario,
+  .btn-whatsapp {
+    flex: 0 0 auto;
+  }
+
+  .formulario {
+    gap: 6px;
+  }
+
+  .formulario input,
+  .formulario select {
+    padding: 10px;
   }
 }
