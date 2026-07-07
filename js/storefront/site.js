@@ -34,8 +34,12 @@ observarPromocoes(() => {
   renderPromocoesSite();
 });
 
+
+
 function aplicarConfiguracoesSite() {
-  document.querySelectorAll(".brand strong").forEach(el => el.textContent = lojaConfig.nomeLoja || "Delícias da Vó");
+  document.querySelectorAll(".brand strong").forEach(el => {
+    el.textContent = lojaConfig.nomeLoja || "Delícias da Vó";
+  });
 
   const entrega = document.getElementById("entregaTexto");
   const retirada = document.getElementById("retiradaTexto");
@@ -43,30 +47,12 @@ function aplicarConfiguracoesSite() {
 
   if (entrega) entrega.textContent = lojaConfig.entrega || "Taxa conforme distância";
   if (retirada) retirada.textContent = lojaConfig.retirada || "Disponível na loja";
-  if (status) status.textContent = lojaConfig.statusLoja === "fechada" ? "Loja fechada no momento" : "Recebendo pedidos";
-}
 
-function precoProduto(produto) {
-  const promo = promocaoAtivaParaProduto(produto.id);
-
-  if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
-    const disponiveis = produto.variacoes.filter(v => v.ativa !== false && (v.sobEncomenda || Number(v.estoque || 0) > 0));
-    const precoBase = disponiveis.length
-      ? Math.min(...disponiveis.map(v => Number(v.preco || produto.preco || 0)))
-      : Number(produto.preco || 0);
-    return promo ? Number(promo.precoPromocional || precoBase) : Number(precoBase);
-  }
-
-  return promo ? Number(promo.precoPromocional || produto.preco) : Number(produto.preco || 0);
-  atualizarStatusAtendimento();
-}
-function atualizarStatusAtendimento() {
-  const status = document.getElementById("statusLojaTexto");
-  if (!status) return;
-
+  if (status) {
   const resultado = calcularStatusAtendimento();
-
+  status.innerHTML = "";
   status.textContent = resultado.texto;
+}
 }
 
 function calcularStatusAtendimento() {
@@ -100,6 +86,24 @@ function calcularStatusAtendimento() {
   }
 
   return { aberto: false, texto: "🔴 Fechado no momento" };
+}
+
+function precoProduto(produto) {
+  const promo = promocaoAtivaParaProduto(produto.id);
+
+  if (Array.isArray(produto.variacoes) && produto.variacoes.length) {
+    const disponiveis = produto.variacoes.filter(v =>
+      v.ativa !== false && (v.sobEncomenda || Number(v.estoque || 0) > 0)
+    );
+
+    const precoBase = disponiveis.length
+      ? Math.min(...disponiveis.map(v => Number(v.preco || produto.preco || 0)))
+      : Number(produto.preco || 0);
+
+    return promo ? Number(promo.precoPromocional || precoBase) : Number(precoBase);
+  }
+
+  return promo ? Number(promo.precoPromocional || produto.preco) : Number(produto.preco || 0);
 }
 function cardProduto(produto) {
   const status = statusEstoque(produto);
