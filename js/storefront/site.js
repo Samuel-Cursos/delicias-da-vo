@@ -58,8 +58,49 @@ function precoProduto(produto) {
   }
 
   return promo ? Number(promo.precoPromocional || produto.preco) : Number(produto.preco || 0);
+  atualizarStatusAtendimento();
+}
+function atualizarStatusAtendimento() {
+  const status = document.getElementById("statusLojaTexto");
+  if (!status) return;
+
+  const resultado = calcularStatusAtendimento();
+
+  status.textContent = resultado.texto;
 }
 
+function calcularStatusAtendimento() {
+  const horarios = lojaConfig.horariosAtendimento || {};
+  const agora = new Date();
+
+  const dias = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+  const diaAtual = dias[agora.getDay()];
+  const horaAtual = agora.toTimeString().slice(0, 5);
+
+  const configHoje = horarios[diaAtual];
+
+  if (!configHoje || configHoje.fechado || !configHoje.periodos?.length) {
+    return { aberto: false, texto: "🔴 Fechado no momento" };
+  }
+
+  for (const periodo of configHoje.periodos) {
+    if (horaAtual >= periodo.inicio && horaAtual <= periodo.fim) {
+      return {
+        aberto: true,
+        texto: `🟢 Aberto agora até ${periodo.fim}`
+      };
+    }
+
+    if (horaAtual < periodo.inicio) {
+      return {
+        aberto: false,
+        texto: `🔴 Fechado · abrimos hoje às ${periodo.inicio}`
+      };
+    }
+  }
+
+  return { aberto: false, texto: "🔴 Fechado no momento" };
+}
 function cardProduto(produto) {
   const status = statusEstoque(produto);
   const promo = promocaoAtivaParaProduto(produto.id);

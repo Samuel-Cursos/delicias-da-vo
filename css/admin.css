@@ -135,3 +135,56 @@ button{cursor:pointer;border:0}
   color: var(--muted);
   margin-top: 4px;
 }
+.full-config {
+  grid-column: 1 / -1;
+}
+
+.horarios-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.horario-dia {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.horario-dia-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.horario-periodos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.horario-periodos label {
+  font-weight: 900;
+  color: var(--brown);
+}
+
+.horario-periodos input {
+  width: 100%;
+  margin-top: 5px;
+  border: 1px solid #d99559;
+  border-radius: 12px;
+  padding: 10px;
+}
+.horario-dia-top button {
+  padding: 8px 10px;
+  font-size: .8rem;
+}
+.auto-save-status {
+  margin-top: 10px;
+  color: var(--green);
+  font-weight: 900;
+  font-size: .9rem;
+}

@@ -47,8 +47,6 @@
           <h1 id="tituloAba">Dashboard</h1>
           <p>Resumo da loja, vendas, produtos e estoque em tempo real.</p>
         </div>
-
-        <button onclick="criarProdutosBase()">Criar/Restaurar base</button>
       </header>
 
       <section class="aba active" id="aba-dashboard">
@@ -210,7 +208,6 @@
           </div>
           <div class="panel-actions">
             <button class="primary-btn" onclick="abrirModalCategoria()">➕ Nova categoria</button>
-            <button class="secondary-btn" onclick="criarCategoriasBaseAdmin()">♻️ Restaurar categorias</button>
           </div>
         </div>
 
@@ -257,6 +254,15 @@
               </select>
             </label>
           </div>
+          <div class="panel full-config">
+  <h3>🕒 Horário de Atendimento</h3>
+  <p>Configure os horários em que a loja aparece como aberta no site.</p>
+<button type="button" class="secondary-btn" onclick="copiarSegundaParaTodos()">
+  ⚡ Aplicar segunda para todos os dias
+</button>
+  <div id="horariosAtendimento" class="horarios-grid"></div>
+</div>
+<div id="statusHorarioAuto" class="auto-save-status"></div>
         </div>
 
         <div id="statusConfig" class="mensagem-venda"></div>

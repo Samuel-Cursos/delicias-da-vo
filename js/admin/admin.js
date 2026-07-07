@@ -33,9 +33,13 @@ function iniciarAdminDepoisLogin() {
     renderCaixa();
   });
 
-  observarConfiguracoesLoja(() => {
+ observarConfiguracoesLoja(() => {
+  const abaConfigAberta = document.getElementById("aba-config")?.classList.contains("active");
+
+  if (!abaConfigAberta) {
     preencherConfiguracoesLoja();
-  });
+  }
+});
 
   observarPromocoes(() => {
     renderPromocoesAdmin();
@@ -792,6 +796,146 @@ async function excluirPromocaoAdmin(id) {
 
   await excluirPromocao(id);
 }
+const diasAtendimento = [
+  { id: "segunda", nome: "Segunda" },
+  { id: "terca", nome: "Terça" },
+  { id: "quarta", nome: "Quarta" },
+  { id: "quinta", nome: "Quinta" },
+  { id: "sexta", nome: "Sexta" },
+  { id: "sabado", nome: "Sábado" },
+  { id: "domingo", nome: "Domingo" }
+];
+
+let timerSalvarHorarios = null;
+
+function renderHorariosAtendimento() {
+  const box = document.getElementById("horariosAtendimento");
+  if (!box) return;
+
+  box.innerHTML = "";
+
+  const horarios = lojaConfig.horariosAtendimento || {};
+
+  diasAtendimento.forEach(dia => {
+    const configDia = horarios[dia.id] || {
+      fechado: false,
+      periodos: [
+        { inicio: "", fim: "" },
+        { inicio: "", fim: "" }
+      ]
+    };
+
+    const fechado = configDia.fechado === true;
+    const periodos = configDia.periodos || [];
+
+    box.innerHTML += `
+      <div class="horario-dia">
+        <div class="horario-dia-top">
+          <strong>${dia.nome}</strong>
+          <button type="button" class="secondary-btn" onclick="copiarHorarioParaTodos('${dia.id}')">Copiar para todos</button>
+          <label class="check">
+            <input type="checkbox" id="horario-${dia.id}-fechado" ${fechado ? "checked" : ""}>
+            Fechado
+          </label>
+        </div>
+
+        <div class="horario-periodos">
+          <label>Início 1
+            <input type="time" id="horario-${dia.id}-inicio-1" value="${periodos[0]?.inicio || ""}">
+          </label>
+
+          <label>Fim 1
+            <input type="time" id="horario-${dia.id}-fim-1" value="${periodos[0]?.fim || ""}">
+          </label>
+
+          <label>Início 2
+            <input type="time" id="horario-${dia.id}-inicio-2" value="${periodos[1]?.inicio || ""}">
+          </label>
+
+          <label>Fim 2
+            <input type="time" id="horario-${dia.id}-fim-2" value="${periodos[1]?.fim || ""}">
+          </label>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function coletarHorariosAtendimento() {
+  const horarios = {};
+
+  diasAtendimento.forEach(dia => {
+    const fechado = document.getElementById(`horario-${dia.id}-fechado`)?.checked || false;
+
+    const inicio1 = document.getElementById(`horario-${dia.id}-inicio-1`)?.value || "";
+    const fim1 = document.getElementById(`horario-${dia.id}-fim-1`)?.value || "";
+    const inicio2 = document.getElementById(`horario-${dia.id}-inicio-2`)?.value || "";
+    const fim2 = document.getElementById(`horario-${dia.id}-fim-2`)?.value || "";
+
+    const periodos = [];
+
+    if (inicio1 && fim1) periodos.push({ inicio: inicio1, fim: fim1 });
+    if (inicio2 && fim2) periodos.push({ inicio: inicio2, fim: fim2 });
+
+    horarios[dia.id] = {
+      fechado,
+      periodos
+    };
+  });
+
+  return horarios;
+}
+
+function aplicarHorarioDeUmDiaParaTodos(diaOrigem) {
+  const inicio1 = document.getElementById(`horario-${diaOrigem}-inicio-1`)?.value || "";
+  const fim1 = document.getElementById(`horario-${diaOrigem}-fim-1`)?.value || "";
+  const inicio2 = document.getElementById(`horario-${diaOrigem}-inicio-2`)?.value || "";
+  const fim2 = document.getElementById(`horario-${diaOrigem}-fim-2`)?.value || "";
+  const fechado = document.getElementById(`horario-${diaOrigem}-fechado`)?.checked || false;
+
+  diasAtendimento.forEach(dia => {
+    document.getElementById(`horario-${dia.id}-inicio-1`).value = inicio1;
+    document.getElementById(`horario-${dia.id}-fim-1`).value = fim1;
+    document.getElementById(`horario-${dia.id}-inicio-2`).value = inicio2;
+    document.getElementById(`horario-${dia.id}-fim-2`).value = fim2;
+    document.getElementById(`horario-${dia.id}-fechado`).checked = fechado;
+  });
+
+  salvarHorariosAutomaticamente();
+}
+
+function copiarHorarioParaTodos(diaOrigem) {
+  aplicarHorarioDeUmDiaParaTodos(diaOrigem);
+}
+
+function copiarSegundaParaTodos() {
+  aplicarHorarioDeUmDiaParaTodos("segunda");
+}
+
+function salvarHorariosAutomaticamente() {
+  clearTimeout(timerSalvarHorarios);
+
+  const status = document.getElementById("statusHorarioAuto");
+  if (status) status.textContent = "Salvando horários...";
+
+  timerSalvarHorarios = setTimeout(async () => {
+    try {
+      const horarios = coletarHorariosAtendimento();
+
+      await salvarConfiguracoes({
+        ...lojaConfig,
+        horariosAtendimento: horarios
+      });
+
+      lojaConfig.horariosAtendimento = horarios;
+
+      if (status) status.textContent = "✅ Horários salvos automaticamente";
+    } catch (erro) {
+      console.error("Erro ao salvar horários:", erro);
+      if (status) status.textContent = "❌ Erro ao salvar horários";
+    }
+  }, 700);
+}
 
 function preencherConfiguracoesLoja() {
   const campos = {
@@ -803,13 +947,14 @@ function preencherConfiguracoesLoja() {
     configHorario: lojaConfig.horario || "",
     configEntrega: lojaConfig.entrega || "Taxa conforme distância",
     configRetirada: lojaConfig.retirada || "Retirada na loja",
-    configStatusLoja: lojaConfig.statusLoja || "aberta"
+    configStatusLoja: lojaConfig.statusLoja || "aberta",
   };
 
   Object.entries(campos).forEach(([id, valor]) => {
     const el = document.getElementById(id);
     if (el) el.value = valor;
   });
+  renderHorariosAtendimento();
 }
 
 async function salvarConfiguracoesLoja() {
@@ -822,7 +967,8 @@ async function salvarConfiguracoesLoja() {
     horario: limparTexto(document.getElementById("configHorario").value),
     entrega: limparTexto(document.getElementById("configEntrega").value),
     retirada: limparTexto(document.getElementById("configRetirada").value),
-    statusLoja: document.getElementById("configStatusLoja").value
+   statusLoja: document.getElementById("configStatusLoja").value,
+horariosAtendimento: coletarHorariosAtendimento()
   };
 
   await salvarConfiguracoes(dados);
@@ -832,12 +978,9 @@ async function salvarConfiguracoesLoja() {
   status.innerHTML = '';
   const sStrong = document.createElement('strong'); sStrong.textContent = 'Configurações salvas!'; status.appendChild(sStrong);
   status.appendChild(document.createElement('br'));
-  status.appendChild(document.createTextNode('As alterações serão usadas no sistema.'));
-
+  status.appendChild(document.createTextNode('As alterações serão usadas no sistema.'));  
   setTimeout(() => status.style.display = 'none', 4000);
 }
-
-// Expor API pública (compatibilidade com handlers inline)
 window.criarProdutosBase = criarProdutosBase;
 window.iniciarAdminDepoisLogin = iniciarAdminDepoisLogin;
 window.abrirAba = abrirAba;
@@ -866,6 +1009,7 @@ window.excluirPromocaoAdmin = excluirPromocaoAdmin;
 window.abrirModalCategoria = abrirModalCategoria;
 window.fecharModalCategoria = fecharModalCategoria;
 window.salvarCategoriaAdmin = salvarCategoriaAdmin;
-window.criarCategoriasBaseAdmin = criarCategoriasBaseAdmin;
 window.atualizarCampoSelecaoProduto = atualizarCampoSelecaoProduto;
 window.salvarConfiguracoesLoja = salvarConfiguracoesLoja;
+window.copiarHorarioParaTodos = copiarHorarioParaTodos;
+window.copiarSegundaParaTodos = copiarSegundaParaTodos;
