@@ -71,11 +71,24 @@ function calcularStatusAtendimento() {
 
   for (const periodo of configHoje.periodos) {
     if (horaAtual >= periodo.inicio && horaAtual <= periodo.fim) {
-      return {
-        aberto: true,
-        texto: `🟢 Aberto agora até ${periodo.fim}`
-      };
-    }
+  const [horaFim, minutoFim] = periodo.fim.split(":").map(Number);
+  const fim = new Date();
+  fim.setHours(horaFim, minutoFim, 0, 0);
+
+  const minutosParaFechar = Math.round((fim - agora) / 60000);
+
+  if (minutosParaFechar <= 30 && minutosParaFechar > 0) {
+    return {
+      aberto: true,
+      texto: `🟡 Fechando em breve · fecha às ${periodo.fim}`
+    };
+  }
+
+  return {
+    aberto: true,
+    texto: `🟢 Aberto agora até ${periodo.fim}`
+  };
+}
 
     if (horaAtual < periodo.inicio) {
       return {
