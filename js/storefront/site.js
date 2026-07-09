@@ -6,6 +6,7 @@ import { categorias, categoriasBase, observarCategorias, normalizarCategorias, c
 import { lojaConfig, observarConfiguracoesLoja } from "../services/configService.js";
 import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../services/promotionService.js";
 import { createProductCard } from "../core/templates.js";
+import { gerarPedidoSite } from "../services/orderService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -494,7 +495,70 @@ function confirmarSabor(produtoId, escolha) {
   abrirCarrinhoImpl();
 }
 
-function finalizarPedidoImpl() {
+
+function textoWhatsApp(valor) {
+  return encodeURIComponent(valor);
+}
+
+function montarMensagemPedidoWhatsApp(pedido) {
+  const linhasItens = pedido.itens.map(item => {
+    const opcao = item.sabor ? `\n   Opção: ${item.sabor}` : "";
+    return `• ${item.quantidade}x ${item.nome}${opcao}\n  ${formatarMoeda(item.subtotal)}`;
+  }).join("\n\n");
+
+  const tipoEntrega = pedido.tipo === "Entrega" ? "🚚 ENTREGA" : "🏪 RETIRADA NA LOJA";
+  const endereco = pedido.tipo === "Entrega"
+    ? `\n📍 Endereço\n${pedido.endereco}\n`
+    : "";
+
+  return `━━━━━━━━━━━━━━━━━━━━━━
+🍽️ DELÍCIAS DA VÓ
+
+📦 Pedido ${pedido.numeroFormatado}
+📅 ${pedido.dataBR}
+🕒 ${pedido.horaBR}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+👤 CLIENTE
+${pedido.cliente.nome}
+
+📱 WhatsApp
+${pedido.cliente.telefone || "Não informado"}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛒 PEDIDO
+
+${linhasItens}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+${tipoEntrega}
+${endereco}
+💳 PAGAMENTO
+${pedido.pagamento}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 TOTAL
+${formatarMoeda(pedido.total)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+Obrigado pela preferência ❤️`;
+}
+
+function setBotaoFinalizarPedido(texto, desabilitado = false) {
+  const botao = document.querySelector(".btn-whatsapp");
+  if (!botao) return;
+
+  botao.textContent = texto;
+  botao.disabled = desabilitado;
+}
+
+
+async function finalizarPedidoImpl() {
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
     return;
@@ -516,30 +580,53 @@ function finalizarPedidoImpl() {
     return;
   }
 
-  const linhas = carrinho
-    .map(item => {
-      const escolha = item.sabor ? `%0A• Opção: ${item.sabor}` : '';
-      return `${item.quantidade}x ${item.nome}${escolha}%0A${formatarMoeda(item.preco * item.quantidade)}`;
-    })
-    .join("%0A%0A");
+  setBotaoFinalizarPedido("⏳ Preparando pedido...", true);
 
-  const total = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+  try {
+    const itens = carrinho.map(item => ({
+      id: item.id,
+      variacaoId: item.variacaoId || "",
+      nome: item.nome,
+      sabor: item.sabor || "",
+      quantidade: Number(item.quantidade || 0),
+      preco: Number(item.preco || 0),
+      subtotal: Number(item.preco || 0) * Number(item.quantidade || 0)
+    }));
 
-  let msg = `Olá, vim pelo site da ${lojaConfig.nomeLoja || "Delícias da Vó"}.%0A%0A`;
-  msg += `*Pedido:*%0A${linhas}%0A%0A`;
-  msg += `*Total:* ${formatarMoeda(total)}%0A`;
-  msg += `*Nome:* ${nome}%0A`;
+    const total = itens.reduce((soma, item) => soma + item.subtotal, 0);
 
-  if (telefone) msg += `*WhatsApp:* ${telefone}%0A`;
+    setBotaoFinalizarPedido("📦 Gerando número...", true);
 
-  msg += `*Tipo:* ${tipo}%0A`;
+    const pedido = await gerarPedidoSite({
+      origem: "site",
+      loja: lojaConfig.nomeLoja || "Delícias da Vó",
+      cliente: {
+        nome,
+        telefone
+      },
+      tipo,
+      endereco: tipo === "Entrega" ? endereco : "",
+      pagamento,
+      itens,
+      total
+    });
 
-  if (tipo === "Entrega") msg += `*Endereço:* ${endereco}%0A`;
+    const mensagem = montarMensagemPedidoWhatsApp(pedido);
+    const numero = lojaConfig.whatsapp || APP_CONFIG.whatsapp;
 
-  msg += `*Pagamento:* ${pagamento}%0A`;
+    setBotaoFinalizarPedido("✅ Abrindo WhatsApp...", true);
 
-  const numero = lojaConfig.whatsapp || APP_CONFIG.whatsapp;
-  window.open(`https://wa.me/${numero}?text=${msg}`, "_blank");
+    window.open(`https://wa.me/${numero}?text=${textoWhatsApp(mensagem)}`, "_blank");
+
+    setTimeout(() => {
+      setBotaoFinalizarPedido("Enviar pelo WhatsApp", false);
+    }, 1200);
+
+  } catch (erro) {
+    console.error("Erro ao finalizar pedido:", erro);
+    alert("Não foi possível gerar o número do pedido. Tente novamente.");
+    setBotaoFinalizarPedido("Enviar pelo WhatsApp", false);
+  }
 };
 
 window.alterarItem = alterarItemImpl;

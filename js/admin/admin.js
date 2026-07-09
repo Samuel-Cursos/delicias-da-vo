@@ -9,6 +9,7 @@ import { sugerirProdutoComIA } from "../services/aiProductService.js";
 import { iniciarCategoriasAdmin, abrirModalCategoria, fecharModalCategoria, salvarCategoriaAdmin } from "./categoryAdmin.js";
 import { createProductAdminRow, createPromoAdminCard } from "../core/templates.js";
 import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "../core/firebase.js";
+import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -31,6 +32,10 @@ function iniciarAdminDepoisLogin() {
   observarVendasHoje(() => {
     renderDashboard();
     renderCaixa();
+  });
+
+  observarResumoPedidosSiteHoje(() => {
+    renderPedidosSiteDashboard();
   });
 
  observarConfiguracoesLoja(() => {
@@ -85,7 +90,28 @@ function produtoMaisVendidoHoje() {
   return ordenado[0] || null;
 }
 
+
+function renderPedidosSiteDashboard() {
+  const totalEl = document.getElementById("statPedidosSiteHoje");
+  const ultimoEl = document.getElementById("statUltimoPedidoSite");
+
+  if (!totalEl || !ultimoEl) return;
+
+  totalEl.textContent = resumoPedidosSiteHoje.totalPedidos || 0;
+
+  const ultimo = resumoPedidosSiteHoje.ultimoPedido;
+
+  if (ultimo?.numeroFormatado) {
+    ultimoEl.textContent = `${ultimo.numeroFormatado} às ${ultimo.horaBR || "--:--"}`;
+  } else {
+    ultimoEl.textContent = "Nenhum pedido enviado hoje";
+  }
+}
+
+
 function renderDashboard() {
+  renderPedidosSiteDashboard();
+
   const ativos = produtos.filter(p => p.ativo !== false).length;
 
   const baixos = produtos.filter(p => {

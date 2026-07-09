@@ -1,0 +1,40 @@
+V4.5 - Pedidos premium pelo WhatsApp
+
+O que foi adicionado:
+- Número diário automático de pedido: #001, #002, #003...
+- O contador reinicia sozinho a cada novo dia.
+- O número é gerado com transaction do Firebase para evitar duplicidade.
+- Mensagem do WhatsApp redesenhada, mais organizada.
+- Data e hora no pedido.
+- Botão bloqueia clique repetido enquanto gera o pedido.
+- Dashboard mostra Pedidos pelo site hoje e Último pedido.
+
+Coleções usadas no Firebase:
+- contadoresPedidos
+  - documento por data, exemplo: 2026-07-09
+- pedidosSite
+  - documento por data
+  - subcoleção pedidos
+  - documento por pedido, exemplo: pedido_20260709_001
+
+Você não precisa criar nada manualmente no Firebase.
+O código cria os documentos automaticamente quando o primeiro pedido do dia for enviado.
+
+IMPORTANTE:
+Teste na branch v4.5-pedidos antes de fazer merge na main.
+
+Teste obrigatório:
+1. Adicionar produto ao carrinho.
+2. Enviar pedido.
+3. Verificar se o WhatsApp abriu com Pedido #001.
+4. Enviar outro pedido e verificar se virou #002.
+5. Ver Dashboard do ADM.
+6. Testar produto com opção/sabor.
+7. Testar no celular.
+
+Se funcionar:
+git add .
+git commit -m "V4.5 - Pedidos premium pelo WhatsApp"
+git switch main
+git merge v4.5-pedidos
+git push origin main

@@ -199,3 +199,14 @@ button{cursor:pointer;border:0}
 .full-config .check {
   margin: 10px 0;
 }
+
+
+/* V4.5 - Dashboard de pedidos pelo site */
+.stat.destaque-site {
+  border: 2px solid #25d366;
+  background: linear-gradient(135deg, #ffffff, #ecfdf5);
+}
+
+.stat.destaque-site span {
+  color: #166534;
+}
