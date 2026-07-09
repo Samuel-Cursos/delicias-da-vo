@@ -210,3 +210,10 @@ button{cursor:pointer;border:0}
 .stat.destaque-site span {
   color: #166534;
 }
+
+
+/* V4.6 - Ingredientes */
+#produtoIngredientes {
+  min-height: 90px;
+  resize: vertical;
+}

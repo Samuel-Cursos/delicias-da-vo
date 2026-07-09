@@ -817,3 +817,37 @@ nav button {
     transform: scale(1.015);
   }
 }
+
+/* V4.6 - Ingredientes e observações */
+.ingredientes-card {
+  margin: 8px 0 4px;
+  color: #7a5a43;
+  font-size: .84rem;
+  line-height: 1.35;
+  background: #fff8ed;
+  border: 1px dashed #f0d2b2;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.ingredientes-card strong {
+  color: #5a2e1d;
+}
+
+.obs-item {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  border: 1px solid #f0d2b2;
+  border-radius: 12px;
+  padding: 9px;
+  margin: 8px 0;
+  background: #fff;
+  color: #3a2417;
+  font-size: .88rem;
+}
+
+.obs-item:focus {
+  outline: 2px solid rgba(247, 183, 51, .55);
+  border-color: #d99559;
+}

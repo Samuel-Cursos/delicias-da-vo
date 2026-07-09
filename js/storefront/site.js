@@ -360,7 +360,7 @@ function adicionarCarrinhoImpl(id) {
   const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
 
   if (item) item.quantidade++;
-  else carrinho.push({ chave, id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0) });
+  else carrinho.push({ chave, id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0), observacao: "" });
 
   atualizarCarrinho();
   abrirCarrinhoImpl();
@@ -392,6 +392,17 @@ function atualizarCarrinho() {
       saborSpan.textContent = `Opção: ${item.sabor}`;
       wrapper.appendChild(saborSpan);
     }
+
+    const obs = document.createElement('textarea');
+    obs.className = 'obs-item';
+    obs.placeholder = 'Observação deste item. Ex: sem tomate, sem cebola...';
+    obs.value = item.observacao || '';
+    obs.addEventListener('input', () => {
+      item.observacao = obs.value;
+      salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
+    });
+    wrapper.appendChild(obs);
+
     const small = document.createElement('small'); small.textContent = formatarMoeda(item.preco * item.quantidade); wrapper.appendChild(small);
     const actions = document.createElement('div'); actions.className = 'item-actions';
     const btnMinus = document.createElement('button'); btnMinus.textContent = '-'; btnMinus.addEventListener('click', () => window.alterarItem && window.alterarItem(item.chave || chaveCarrinho(item.id, item.variacaoId, item.sabor), -1));
@@ -488,7 +499,7 @@ function confirmarSabor(produtoId, escolha) {
   const chave = chaveCarrinho(produto.id, variacaoId, sabor);
   const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
   if (item) item.quantidade++;
-  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual });
+  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual, observacao: "" });
 
   atualizarCarrinho();
   fecharModalSabores();
@@ -503,7 +514,8 @@ function textoWhatsApp(valor) {
 function montarMensagemPedidoWhatsApp(pedido) {
   const linhasItens = pedido.itens.map(item => {
     const opcao = item.sabor ? `\n   Opção: ${item.sabor}` : "";
-    return `• ${item.quantidade}x ${item.nome}${opcao}\n  ${formatarMoeda(item.subtotal)}`;
+    const observacao = item.observacao ? `\n   Obs: ${item.observacao}` : "";
+    return `• ${item.quantidade}x ${item.nome}${opcao}${observacao}\n  ${formatarMoeda(item.subtotal)}`;
   }).join("\n\n");
 
   const tipoEntrega = pedido.tipo === "Entrega" ? "🚚 ENTREGA" : "🏪 RETIRADA NA LOJA";
@@ -588,6 +600,7 @@ async function finalizarPedidoImpl() {
       variacaoId: item.variacaoId || "",
       nome: item.nome,
       sabor: item.sabor || "",
+      observacao: limparTexto(item.observacao || ""),
       quantidade: Number(item.quantidade || 0),
       preco: Number(item.preco || 0),
       subtotal: Number(item.preco || 0) * Number(item.quantidade || 0)

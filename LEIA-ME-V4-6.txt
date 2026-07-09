@@ -1,0 +1,24 @@
+V4.6 - Observações e Ingredientes
+
+O que foi adicionado:
+- Campo Ingredientes no ADM, no cadastro/edição de produtos.
+- Ingredientes aparecem no card do produto no site.
+- Cada item do carrinho tem uma observação individual.
+- A observação aparece na mensagem do WhatsApp.
+- A observação é salva no Firebase junto do pedido.
+
+Teste obrigatório:
+1. Abrir ADM e editar um produto.
+2. Preencher ingredientes e salvar.
+3. Ver ingredientes no site.
+4. Adicionar produto ao carrinho.
+5. Escrever observação no item.
+6. Enviar pedido e conferir a observação no WhatsApp.
+7. Confirmar se o carrinho, sabores e Splash continuam funcionando.
+
+Se funcionar:
+git add .
+git commit -m "V4.6 - Observacoes e ingredientes"
+git switch main
+git merge v4.6-observacoes-ingredientes
+git push origin main

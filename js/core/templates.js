@@ -50,6 +50,17 @@ export function createProductCard(produto, options = {}) {
   p.textContent = options.description || produto.descricao || '';
   card.appendChild(p);
 
+  const ingredientesTexto = Array.isArray(produto.ingredientes)
+    ? produto.ingredientes.filter(Boolean).join(", ")
+    : (produto.ingredientes || "");
+
+  if (ingredientesTexto) {
+    const ingredientes = document.createElement('div');
+    ingredientes.className = 'ingredientes-card';
+    ingredientes.innerHTML = `<strong>Ingredientes:</strong> ${ingredientesTexto}`;
+    card.appendChild(ingredientes);
+  }
+
   if (options.showOldPrice && produto.preco != null) {
     const old = document.createElement('span');
     old.className = 'preco-antigo';

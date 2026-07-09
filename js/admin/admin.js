@@ -337,6 +337,13 @@ function abrirModalProduto(id = null) {
   document.getElementById("produtoPreco").value = produtoEditando?.preco || "";
   document.getElementById("produtoEmoji").value = produtoEditando?.emoji || "";
   document.getElementById("produtoDescricao").value = produtoEditando?.descricao || "";
+
+  const ingredientesEditando = Array.isArray(produtoEditando?.ingredientes)
+    ? produtoEditando.ingredientes.join(", ")
+    : (produtoEditando?.ingredientes || "");
+  const ingredientesCampo = document.getElementById("produtoIngredientes");
+  if (ingredientesCampo) ingredientesCampo.value = ingredientesEditando;
+
   document.getElementById("produtoSabores").value = produtoEditando?.sabores?.join(", ") || "";
   document.getElementById("produtoEstoque").value = produtoEditando?.estoque ?? 40;
   document.getElementById("produtoMinimo").value = produtoEditando?.minimo ?? 5;
@@ -424,6 +431,11 @@ async function salvarProdutoAdmin() {
 
   const variacoes = lerVariacoesAdmin();
 
+  const ingredientes = limparTexto(document.getElementById("produtoIngredientes")?.value || "")
+    .split(",")
+    .map(i => limparTexto(i))
+    .filter(Boolean);
+
   if (preco <= 0 && variacoes.length === 0) {
     alert("Digite um preço válido ou adicione variações com preço.");
     return;
@@ -440,6 +452,7 @@ async function salvarProdutoAdmin() {
     preco,
     emoji: document.getElementById("produtoEmoji").value || "🍽️",
     descricao: document.getElementById("produtoDescricao").value || "",
+    ingredientes,
     sabores,
     estoque: sobEncomenda ? 0 : Number(document.getElementById("produtoEstoque").value || 0),
     minimo: sobEncomenda ? 0 : Number(document.getElementById("produtoMinimo").value || 0),
