@@ -6,6 +6,9 @@
 
   <title>Delícias da Vó | Pedidos Online</title>
 
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#5a2e1d" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="stylesheet" href="css/site.css" />
 </head>
 <body>
@@ -131,5 +134,14 @@
   </div>
 
   <script type="module" src="js/storefront/site.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js")
+          .catch(error => console.warn("Service Worker não registrado:", error));
+      });
+    }
+  </script>
 </body>
 </html>
