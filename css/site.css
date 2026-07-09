@@ -758,3 +758,62 @@ nav button {
     border-radius: 14px;
   }
 }
+/* Splash Screen segura */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(247, 183, 51, .24), transparent 45%),
+    linear-gradient(135deg, rgba(255, 248, 237, .96), rgba(247, 239, 227, .94));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .9s ease, visibility .9s ease;
+}
+
+.splash-screen.splash-saindo {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-card {
+  width: min(86vw, 390px);
+  text-align: center;
+  animation: splashRespira 1.7s ease-in-out infinite alternate;
+}
+
+.splash-logo {
+  width: min(78vw, 330px);
+  max-height: 55vh;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 38px rgba(90, 46, 29, .26));
+}
+
+.splash-card p {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: rgba(255, 248, 237, .9);
+  border: 1px solid rgba(217, 149, 89, .5);
+  color: #5a2e1d;
+  font-weight: 900;
+  box-shadow: 0 14px 35px rgba(90, 46, 29, .14);
+}
+
+@keyframes splashRespira {
+  from {
+    transform: scale(.985);
+  }
+
+  to {
+    transform: scale(1.015);
+  }
+}

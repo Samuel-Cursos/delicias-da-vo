@@ -12,6 +12,7 @@ let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
 let pendingSaborProdutoId = null;
 
 iniciarAuth();
+iniciarSplashScreen();
 
 observarProdutos(() => {
   renderCategoriasSite();
@@ -35,6 +36,20 @@ observarPromocoes(() => {
   renderPromocoesSite();
 });
 
+function iniciarSplashScreen() {
+  const splash = document.getElementById("splashScreen");
+  if (!splash) return;
+
+  const tempoMinimo = 2600;
+
+  window.setTimeout(() => {
+    splash.classList.add("splash-saindo");
+
+    window.setTimeout(() => {
+      splash.remove();
+    }, 1000);
+  }, tempoMinimo);
+}
 
 
 function aplicarConfiguracoesSite() {
