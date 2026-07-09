@@ -393,6 +393,13 @@ function atualizarCarrinho() {
       wrapper.appendChild(saborSpan);
     }
 
+    if (item.ingredientes) {
+      const ingredientesSpan = document.createElement('span');
+      ingredientesSpan.className = 'item-ingredientes';
+      ingredientesSpan.textContent = `Ingredientes: ${item.ingredientes}`;
+      wrapper.appendChild(ingredientesSpan);
+    }
+
     const obs = document.createElement('textarea');
     obs.className = 'obs-item';
     obs.placeholder = 'Observação deste item. Ex: sem tomate, sem cebola...';
@@ -435,6 +442,30 @@ function alterarItemImpl(chave, valor) {
 }
 
 // Modal de sabores
+
+function textoIngredientes(valor) {
+  if (Array.isArray(valor)) return valor.filter(Boolean).join(", ");
+  return valor || "";
+}
+
+function ingredientesDaEscolha(escolha) {
+  if (escolha && typeof escolha === "object") {
+    return textoIngredientes(escolha.ingredientes);
+  }
+
+  return "";
+}
+
+function criarLinhaIngredientesModal(ingredientesTexto) {
+  if (!ingredientesTexto) return null;
+
+  const div = document.createElement("div");
+  div.className = "ingredientes-opcao";
+  div.innerHTML = `<strong>Ingredientes:</strong> ${ingredientesTexto}`;
+  return div;
+}
+
+
 function abrirModalSabores(produto) {
   pendingSaborProdutoId = produto.id;
   const modal = document.getElementById('modalSabores');
@@ -456,8 +487,13 @@ function abrirModalSabores(produto) {
       .forEach(v => {
         const btn = document.createElement('button');
         btn.className = 'sabor-btn';
-        btn.textContent = `${v.nome} – ${Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v.preco)}${v.sobEncomenda ? ' (Sob encomenda)' : ` — ${v.estoque || 0} em estoque`}`;
-        btn.disabled = !v.sobEncomenda && Number(v.estoque || 0) <= 0;
+        btn.innerHTML = `<strong>${v.nome}</strong><small>${Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v.preco)}${v.sobEncomenda ? ' · Sob encomenda' : ''}</small>`;
+
+        const ingredientesTexto = textoIngredientes(v.ingredientes);
+        const ingredientesEl = criarLinhaIngredientesModal(ingredientesTexto);
+        if (ingredientesEl) btn.appendChild(ingredientesEl);
+
+        btn.disabled = v.ativa === false;
         btn.addEventListener('click', () => confirmarSabor(produto.id, v));
         list.appendChild(btn);
       });
@@ -495,11 +531,12 @@ function confirmarSabor(produtoId, escolha) {
   const sabor = isVariacao ? escolha.nome : escolha;
   const precoFinal = isVariacao ? Number(escolha.preco || precoProduto(produto)) : precoProduto(produto);
   const estoqueAtual = isVariacao ? Number(escolha.estoque || produto.estoque || 0) : Number(produto.estoque || 0);
+  const ingredientesOpcao = ingredientesDaEscolha(escolha);
 
   const chave = chaveCarrinho(produto.id, variacaoId, sabor);
   const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
   if (item) item.quantidade++;
-  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, estoqueAtual, observacao: "" });
+  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, ingredientes: ingredientesOpcao, estoqueAtual, observacao: "" });
 
   atualizarCarrinho();
   fecharModalSabores();
@@ -514,8 +551,9 @@ function textoWhatsApp(valor) {
 function montarMensagemPedidoWhatsApp(pedido) {
   const linhasItens = pedido.itens.map(item => {
     const opcao = item.sabor ? `\n   Opção: ${item.sabor}` : "";
+    const ingredientes = item.ingredientes ? `\n   Ingredientes: ${item.ingredientes}` : "";
     const observacao = item.observacao ? `\n   Obs: ${item.observacao}` : "";
-    return `• ${item.quantidade}x ${item.nome}${opcao}${observacao}\n  ${formatarMoeda(item.subtotal)}`;
+    return `• ${item.quantidade}x ${item.nome}${opcao}${ingredientes}${observacao}\n  ${formatarMoeda(item.subtotal)}`;
   }).join("\n\n");
 
   const tipoEntrega = pedido.tipo === "Entrega" ? "🚚 ENTREGA" : "🏪 RETIRADA NA LOJA";
@@ -600,6 +638,7 @@ async function finalizarPedidoImpl() {
       variacaoId: item.variacaoId || "",
       nome: item.nome,
       sabor: item.sabor || "",
+      ingredientes: item.ingredientes || "",
       observacao: limparTexto(item.observacao || ""),
       quantidade: Number(item.quantidade || 0),
       preco: Number(item.preco || 0),

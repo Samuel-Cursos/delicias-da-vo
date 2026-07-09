@@ -851,3 +851,38 @@ nav button {
   outline: 2px solid rgba(247, 183, 51, .55);
   border-color: #d99559;
 }
+
+
+/* V4.6.1 - Ingredientes por sabor/opção */
+.sabor-btn {
+  display: grid;
+  gap: 4px;
+}
+
+.sabor-btn small {
+  color: #7a5a43;
+  font-weight: 700;
+}
+
+.ingredientes-opcao {
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff8ed;
+  border: 1px dashed #f0d2b2;
+  color: #7a5a43;
+  font-size: .86rem;
+  line-height: 1.35;
+}
+
+.ingredientes-opcao strong {
+  color: #5a2e1d;
+}
+
+.item-ingredientes {
+  display: block;
+  margin: 5px 0;
+  color: #7a5a43;
+  font-size: .84rem;
+  line-height: 1.35;
+}

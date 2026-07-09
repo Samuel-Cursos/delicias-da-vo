@@ -230,6 +230,19 @@ function criarVariacaoAdminItem(variacao = {}) {
   nomeInput.value = variacao.nome || '';
   nomeLabel.appendChild(nomeInput);
 
+  const ingredientesLabel = document.createElement('label');
+  ingredientesLabel.className = 'full variacao-ingredientes-label';
+  ingredientesLabel.textContent = 'Ingredientes desta opção';
+
+  const ingredientesInput = document.createElement('textarea');
+  ingredientesInput.dataset.key = 'ingredientes';
+  ingredientesInput.placeholder = 'Ex: frango, milho, temperos';
+  ingredientesInput.value = Array.isArray(variacao.ingredientes)
+    ? variacao.ingredientes.join(', ')
+    : (variacao.ingredientes || '');
+
+  ingredientesLabel.appendChild(ingredientesInput);
+
   const precoLabel = document.createElement('label');
   precoLabel.textContent = 'Preço';
   const precoInput = document.createElement('input');
@@ -244,7 +257,8 @@ function criarVariacaoAdminItem(variacao = {}) {
   const estoqueInput = document.createElement('input');
   estoqueInput.type = 'number';
   estoqueInput.dataset.key = 'estoque';
-  estoqueInput.value = variacao.estoque != null ? variacao.estoque : 0;
+  estoqueInput.placeholder = 'Opcional';
+  estoqueInput.value = variacao.estoque != null ? variacao.estoque : '';
   estoqueLabel.appendChild(estoqueInput);
 
   const minLabel = document.createElement('label');
@@ -282,6 +296,7 @@ function criarVariacaoAdminItem(variacao = {}) {
   actions.appendChild(btnRemover);
 
   wrapper.appendChild(nomeLabel);
+  wrapper.appendChild(ingredientesLabel);
   wrapper.appendChild(precoLabel);
   wrapper.appendChild(estoqueLabel);
   wrapper.appendChild(minLabel);
@@ -308,7 +323,12 @@ function lerVariacoesAdmin() {
   return Array.from(container.querySelectorAll('.variacao-item')).map(item => {
     const nome = item.querySelector('input[data-key="nome"]').value.trim();
     const preco = Number(item.querySelector('input[data-key="preco"]').value || 0);
-    const estoque = Number(item.querySelector('input[data-key="estoque"]').value || 0);
+    const ingredientes = limparTexto(item.querySelector('[data-key="ingredientes"]')?.value || "")
+      .split(",")
+      .map(i => limparTexto(i))
+      .filter(Boolean);
+    const estoqueValor = item.querySelector('input[data-key="estoque"]').value;
+    const estoque = estoqueValor === "" ? 0 : Number(estoqueValor || 0);
     const minimo = Number(item.querySelector('input[data-key="minimo"]').value || 0);
     const ativa = item.querySelector('input[data-key="ativa"]').checked;
     const sobEncomenda = item.querySelector('input[data-key="sob-encomenda"]').checked;
@@ -317,6 +337,7 @@ function lerVariacoesAdmin() {
       id: item.dataset.variacaoId || gerarId(nome || 'variacao'),
       nome,
       preco,
+      ingredientes,
       estoque,
       minimo,
       ativa,
