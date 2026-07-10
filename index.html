@@ -143,5 +143,37 @@
       });
     }
   </script>
+
+<section id="instalar-app-card" style="margin:32px auto 18px;max-width:900px;padding:22px;border-radius:18px;background:#fff8e8;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.08);">
+  <div style="font-size:32px;">📲</div>
+  <h2 style="margin:8px 0;">Tenha nosso cardápio sempre à mão</h2>
+  <p style="margin:0 0 14px;">Instale a Delícias da Vó na tela inicial do seu celular para acessar mais rápido.</p>
+  <button id="btn-instalar-app" type="button" style="border:0;border-radius:12px;padding:12px 20px;font-weight:700;cursor:pointer;background:#8b2f24;color:white;">Instalar aplicativo</button>
+  <p id="mensagem-instalar-app" style="display:none;margin:12px 0 0;font-size:14px;"></p>
+</section>
+<script>
+let eventoInstalacaoPWA = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  eventoInstalacaoPWA = e;
+});
+document.getElementById('btn-instalar-app').addEventListener('click', async () => {
+  const msg = document.getElementById('mensagem-instalar-app');
+  if (eventoInstalacaoPWA) {
+    eventoInstalacaoPWA.prompt();
+    await eventoInstalacaoPWA.userChoice;
+    eventoInstalacaoPWA = null;
+  } else {
+    msg.style.display = 'block';
+    msg.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? 'No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.'
+      : 'Abra este site no Chrome e use o menu ⋮ → “Adicionar à tela inicial” ou “Instalar app”.';
+  }
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('instalar-app-card').style.display = 'none';
+});
+</script>
+
 </body>
 </html>
