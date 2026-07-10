@@ -939,3 +939,24 @@ nav button {
     font-size:1.45rem;
   }
 }
+
+/* Valores e comprovante das encomendas para festas */
+.festa-preco{margin-top:10px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#fff8e9,#fff1cf);border:1px solid rgba(147,90,41,.12);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.festa-preco span{font-size:.78rem;color:#80675a}
+.festa-preco strong{color:#7b3f24}
+.festa-total-estimado{margin-top:14px;padding:16px;border-radius:16px;background:#fff8e8;border:1px solid #ecd9b8;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
+.festa-total-estimado span{font-weight:800;color:#654a3c}
+.festa-total-estimado strong{font-size:1.15rem;color:#7d3f23}
+.festa-total-estimado small{grid-column:1/-1;color:#8b7569}
+.comprovante-modal.aberto{display:flex}
+.comprovante-box{max-width:560px}
+.comprovante-sucesso{width:66px;height:66px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:#eaf7ec;font-size:2rem}
+.comprovante-box>h2,.comprovante-box>p{text-align:center}
+.comprovante-conteudo{margin:20px 0;padding:18px;border-radius:18px;background:#fffaf3;border:1px solid #ecdcc9}
+.comprovante-numero,.comprovante-linha,.comprovante-total,.comprovante-itens>div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px dashed #e7d8c8}
+.comprovante-numero strong{color:#8a3e24;font-size:1.08rem}
+.comprovante-itens{margin:8px 0}
+.comprovante-total{border-bottom:0;font-size:1.05rem}
+.comprovante-conteudo>small{display:block;margin-top:10px;color:#7c6b61}
+.comprovante-acoes{display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:560px){.comprovante-acoes{grid-template-columns:1fr}.festa-total-estimado{grid-template-columns:1fr}.festa-total-estimado strong{margin-top:4px}}

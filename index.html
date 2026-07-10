@@ -114,6 +114,7 @@
       <div><h2>🧺 Sua encomenda</h2><p>Adicione os itens e envie a lista para confirmação.</p></div>
       <div id="resumoFestaPedido"></div>
       <label>Seu nome<input id="nomeFestaCliente" placeholder="Digite seu nome"></label>
+      <label>Seu WhatsApp<input id="telefoneFestaCliente" inputmode="tel" placeholder="(17) 99999-9999"></label>
       <label>Data da festa<input id="dataFesta" type="date"></label>
       <label>Observações<textarea id="obsFesta" placeholder="Horário, endereço ou alguma observação"></textarea></label>
       <button class="btn-whatsapp" onclick="enviarEncomendaFesta()">💬 Enviar encomenda pelo WhatsApp</button>
@@ -161,6 +162,21 @@
       <div id="listaSaboresModal" class="sabores-list"></div>
       <div class="modal-actions">
         <button id="cancelarSabor">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="modal comprovante-modal" id="modalComprovanteFesta">
+    <div class="modal-box comprovante-box">
+      <button class="modal-close" onclick="fecharComprovanteFesta()">✕</button>
+      <div class="comprovante-sucesso">✅</div>
+      <h2>Pedido preparado!</h2>
+      <p>Seu pedido foi registrado e será confirmado pela Delícias da Vó pelo WhatsApp.</p>
+      <div id="conteudoComprovanteFesta" class="comprovante-conteudo"></div>
+      <div class="modal-actions comprovante-acoes">
+        <button onclick="copiarComprovanteFesta()">📋 Copiar resumo</button>
+        <button class="primary-btn" onclick="abrirWhatsAppComprovante()">💬 Abrir WhatsApp</button>
       </div>
     </div>
   </div>

@@ -11,6 +11,7 @@ import { createProductAdminRow, createPromoAdminCard } from "../core/templates.j
 import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "../core/firebase.js";
 import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore } from "../services/partyProductService.js";
+import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada } from "../services/partyOrderService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -31,6 +32,7 @@ function iniciarAdminDepoisLogin() {
 
   iniciarCategoriasAdmin();
   observarSalgadosFesta((_, erro) => renderFestasAdmin(erro));
+  observarEncomendasFesta((_, erro) => { renderAgendaEncomendas(erro); renderNotificacoesEncomendas(); });
 
   observarVendasHoje(() => {
     renderDashboard();
@@ -69,6 +71,7 @@ function abrirAba(nome, botao) {
     promocoes: "Promoções",
     categorias: "Categorias",
     festas: "Salgados para festas",
+    encomendas: "Agenda de encomendas",
     config: "Configurações"
   };
 
@@ -1287,6 +1290,7 @@ async function salvarFestaAdmin() {
     quantidadeInicial,
     incrementoQuantidade,
     quantidadeMaxima,
+    preco50: Number(document.getElementById("festaPreco50").value || 0),
     descricao: limparTexto(document.getElementById("festaDescricao").value),
     sabores: document.getElementById("festaSabores").value.split(",").map(limparTexto).filter(Boolean),
     ativo: document.getElementById("festaAtivo").checked
@@ -1318,3 +1322,87 @@ async function migrarFestasParaFirestore() {
   }
 }
 window.abrirModalFesta=abrirModalFesta;window.fecharModalFesta=fecharModalFesta;window.salvarFestaAdmin=salvarFestaAdmin;window.migrarFestasParaFirestore=migrarFestasParaFirestore;
+
+
+const STATUS_ENCOMENDA = {
+  aguardando_confirmacao: ["Aguardando confirmação", "novo"],
+  confirmado: ["Confirmado", "confirmado"],
+  em_producao: ["Em produção", "producao"],
+  pronto: ["Pronto", "pronto"],
+  entregue: ["Entregue", "entregue"]
+};
+
+function dataEncomenda(valor) {
+  if (!valor) return "Data não informada";
+  const partes = String(valor).split("-");
+  return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : valor;
+}
+function dataHoraPedido(p) {
+  const d = p.criadoEm?.toDate?.() || new Date(p.criadoEmMs || Date.now());
+  return d.toLocaleString("pt-BR");
+}
+function renderNotificacoesEncomendas() {
+  const novas = encomendasFesta.filter(p => !p.visualizado);
+  const badge = document.getElementById("badgeEncomendas");
+  if (badge) { badge.textContent = novas.length; badge.hidden = novas.length === 0; }
+  const stat = document.getElementById("statNovasEncomendas");
+  const sub = document.getElementById("statProximaFesta");
+  if (stat) stat.textContent = novas.length;
+  if (sub) sub.textContent = novas[0] ? `${novas[0].cliente?.nome || "Cliente"} • festa em ${dataEncomenda(novas[0].dataFesta)}` : "Nenhuma nova encomenda";
+}
+function renderAgendaEncomendas(erro = null) {
+  const box = document.getElementById("listaAgendaEncomendas");
+  if (!box) return;
+  const busca = (document.getElementById("buscaEncomenda")?.value || "").toLowerCase();
+  const filtro = document.getElementById("filtroEncomenda")?.value || "todos";
+  const lista = encomendasFesta.filter(p => {
+    const texto = `${p.numero} ${p.cliente?.nome || ""} ${(p.itens||[]).map(i=>`${i.nome} ${i.sabor}`).join(" ")}`.toLowerCase();
+    return (!busca || texto.includes(busca)) && (filtro === "todos" || p.status === filtro);
+  });
+  const cont = st => encomendasFesta.filter(p=>p.status===st).length;
+  document.getElementById("agendaNovas").textContent = cont("aguardando_confirmacao");
+  document.getElementById("agendaConfirmadas").textContent = cont("confirmado");
+  document.getElementById("agendaProducao").textContent = cont("em_producao");
+  document.getElementById("agendaProntas").textContent = cont("pronto");
+  const statusBox = document.getElementById("statusAgendaEncomendas");
+  if (statusBox) { statusBox.style.display = erro ? "flex" : "none"; statusBox.textContent = erro ? "Não foi possível carregar as encomendas agora." : ""; }
+  if (!lista.length) {
+    box.innerHTML = '<div class="agenda-vazia">📭<strong>Nenhuma encomenda encontrada</strong><span>Os pedidos enviados pelo site aparecerão aqui.</span></div>';
+    return;
+  }
+  box.innerHTML = lista.map(p => {
+    const [rotulo, classe] = STATUS_ENCOMENDA[p.status] || STATUS_ENCOMENDA.aguardando_confirmacao;
+    const total = Number(p.totalEstimado || 0);
+    return `<article class="agenda-card ${!p.visualizado ? "nao-lida" : ""}">
+      <div class="agenda-card-topo">
+        <div><span class="agenda-numero">${p.numero || p.id}</span><h3>${p.cliente?.nome || "Cliente"}</h3><small>Recebido em ${dataHoraPedido(p)}</small></div>
+        <span class="agenda-status ${classe}">${rotulo}</span>
+      </div>
+      <div class="agenda-info-grid">
+        <div><span>📅 Data da festa</span><strong>${dataEncomenda(p.dataFesta)}</strong></div>
+        <div><span>📱 WhatsApp</span><strong>${p.cliente?.telefone || "Não informado"}</strong></div>
+        <div><span>🧺 Total</span><strong>${p.totalUnidades || 0} unidades</strong></div>
+        <div><span>💰 Estimativa</span><strong>${total > 0 ? formatarMoeda(total) : "Sob consulta"}</strong></div>
+      </div>
+      <div class="agenda-itens">${(p.itens||[]).map(i=>`<div><span>${i.emoji || "🥟"} ${i.nome} — ${i.sabor}</span><strong>${i.quantidade}</strong></div>`).join("")}</div>
+      ${p.observacoes ? `<p class="agenda-observacao"><b>Observações:</b> ${p.observacoes}</p>` : ""}
+      <div class="agenda-acoes">
+        <select onchange="alterarStatusEncomenda('${p.id}', this.value)">
+          ${Object.entries(STATUS_ENCOMENDA).map(([valor,d])=>`<option value="${valor}" ${p.status===valor?"selected":""}>${d[0]}</option>`).join("")}
+        </select>
+        ${!p.visualizado ? `<button class="secondary-btn" onclick="visualizarEncomenda('${p.id}')">✓ Marcar como vista</button>` : ""}
+      </div>
+    </article>`;
+  }).join("");
+}
+async function alterarStatusEncomenda(id, status) {
+  try { await atualizarStatusEncomendaFesta(id, status); }
+  catch(e) { console.error(e); alert("Não foi possível atualizar o status."); }
+}
+async function visualizarEncomenda(id) {
+  try { await marcarEncomendaVisualizada(id); }
+  catch(e) { console.error(e); alert("Não foi possível marcar a encomenda como vista."); }
+}
+window.renderAgendaEncomendas=renderAgendaEncomendas;
+window.alterarStatusEncomenda=alterarStatusEncomenda;
+window.visualizarEncomenda=visualizarEncomenda;

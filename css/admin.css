@@ -364,3 +364,38 @@ button{cursor:pointer;border:0}
 .origem-firestore{background:#edf6ff;color:#245d91;border-color:#c9e2f7}
 .origem-codigo{background:#fff5df;color:#7e5419;border-color:#ead1a0}
 @media(max-width:720px){.festas-head-actions{width:100%;justify-content:stretch}.festas-head-actions button{flex:1 1 100%}}
+
+/* Agenda e notificações de encomendas */
+.tab-encomendas{position:relative}
+.badge-encomendas{margin-left:auto;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:#d93f3f;color:#fff;display:inline-grid;place-items:center;font-size:.72rem;font-weight:900}
+.destaque-encomendas{background:linear-gradient(135deg,#fff5e6,#ffe9c1)!important}
+.agenda-resumo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.agenda-stat{padding:16px;border-radius:16px;background:#fff;border:1px solid #ece3da;box-shadow:0 6px 16px rgba(65,39,26,.05)}
+.agenda-stat span{display:block;color:#7b6c63;font-size:.82rem}
+.agenda-stat strong{font-size:1.55rem;color:#6a3724}
+.agenda-toolbar{display:grid;grid-template-columns:1fr 240px;gap:12px;margin-bottom:16px}
+.agenda-toolbar select{min-height:46px;border:1px solid #ddd1c6;border-radius:12px;padding:0 12px;background:#fff}
+.agenda-lista{display:grid;gap:16px}
+.agenda-card{border:1px solid #e8ded4;border-radius:18px;background:#fff;padding:18px;box-shadow:0 8px 24px rgba(65,39,26,.06)}
+.agenda-card.nao-lida{border-left:5px solid #d9912b;background:linear-gradient(135deg,#fffdf8,#fff8e8)}
+.agenda-card-topo{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.agenda-card-topo h3{margin:5px 0 3px}
+.agenda-numero{font-size:.76rem;font-weight:900;letter-spacing:.05em;color:#914a2d}
+.agenda-status{padding:7px 11px;border-radius:999px;font-size:.75rem;font-weight:850;white-space:nowrap}
+.agenda-status.novo{background:#fff0cf;color:#8a5b00}
+.agenda-status.confirmado{background:#e9f2ff;color:#235b9a}
+.agenda-status.producao{background:#f5e9ff;color:#71409a}
+.agenda-status.pronto{background:#e7f7eb;color:#2a7a42}
+.agenda-status.entregue{background:#ececec;color:#555}
+.agenda-info-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.agenda-info-grid>div{padding:12px;border-radius:12px;background:#faf7f4}
+.agenda-info-grid span{display:block;font-size:.74rem;color:#7d6b61;margin-bottom:4px}
+.agenda-itens{border-top:1px solid #eee4dc;border-bottom:1px solid #eee4dc;padding:8px 0}
+.agenda-itens>div{display:flex;justify-content:space-between;gap:12px;padding:7px 0}
+.agenda-observacao{padding:12px;border-radius:12px;background:#fff9eb}
+.agenda-acoes{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+.agenda-acoes select{min-height:42px;border-radius:11px;border:1px solid #d9cdc4;padding:0 10px}
+.agenda-vazia{padding:42px;text-align:center;display:grid;gap:7px;font-size:1.5rem}
+.agenda-vazia strong{font-size:1rem}.agenda-vazia span{font-size:.85rem;color:#817168}
+@media(max-width:900px){.agenda-info-grid{grid-template-columns:repeat(2,1fr)}.agenda-resumo{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.agenda-toolbar{grid-template-columns:1fr}.agenda-info-grid{grid-template-columns:1fr}.agenda-card-topo{flex-direction:column}.agenda-acoes{flex-direction:column}.agenda-acoes>*{width:100%}}

@@ -1,13 +1,13 @@
 import { db, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "../core/firebase.js";
 
 export const salgadosFestaBase = [
-  { id:"festa-risoles", nome:"Risoles", emoji:"🥟", categoria:"fritos", descricao:"Crocante por fora e bem recheado por dentro.", sabores:["Carne","Frango","Presunto e queijo","Calabresa e queijo"], ativo:true, ordem:1, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-bolinha-queijo", nome:"Bolinha de queijo", emoji:"🧀", categoria:"fritos", descricao:"Pequena, douradinha e com muito queijo.", sabores:["Queijo"], ativo:true, ordem:2, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-coxinha", nome:"Coxinha", emoji:"🍗", categoria:"fritos", descricao:"A queridinha das festas, sequinha e saborosa.", sabores:["Frango","Carne"], ativo:true, ordem:3, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-kibe", nome:"Kibe", emoji:"🟤", categoria:"fritos", descricao:"Tradicional, crocante e muito saboroso.", sabores:["Carne"], ativo:true, ordem:4, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-esfirra", nome:"Esfirra", emoji:"🥙", categoria:"assados", descricao:"Massa macia com recheio caprichado.", sabores:["Carne","Frango"], ativo:true, ordem:5, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-enroladinho", nome:"Enroladinho", emoji:"🌭", categoria:"assados", descricao:"Assado macio e perfeito para qualquer comemoração.", sabores:["Presunto e queijo","Salsicha"], ativo:true, ordem:6, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 },
-  { id:"festa-empadinha", nome:"Empadinha", emoji:"🥧", categoria:"assados", descricao:"Massa delicada e recheio cremoso.", sabores:["Frango","Palmito"], ativo:true, ordem:7, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500 }
+  { id:"festa-risoles", nome:"Risoles", emoji:"🥟", categoria:"fritos", descricao:"Crocante por fora e bem recheado por dentro.", sabores:["Carne","Frango","Presunto e queijo","Calabresa e queijo"], ativo:true, ordem:1, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-bolinha-queijo", nome:"Bolinha de queijo", emoji:"🧀", categoria:"fritos", descricao:"Pequena, douradinha e com muito queijo.", sabores:["Queijo"], ativo:true, ordem:2, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-coxinha", nome:"Coxinha", emoji:"🍗", categoria:"fritos", descricao:"A queridinha das festas, sequinha e saborosa.", sabores:["Frango","Carne"], ativo:true, ordem:3, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-kibe", nome:"Kibe", emoji:"🟤", categoria:"fritos", descricao:"Tradicional, crocante e muito saboroso.", sabores:["Carne"], ativo:true, ordem:4, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-esfirra", nome:"Esfirra", emoji:"🥙", categoria:"assados", descricao:"Massa macia com recheio caprichado.", sabores:["Carne","Frango"], ativo:true, ordem:5, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-enroladinho", nome:"Enroladinho", emoji:"🌭", categoria:"assados", descricao:"Assado macio e perfeito para qualquer comemoração.", sabores:["Presunto e queijo","Salsicha"], ativo:true, ordem:6, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 },
+  { id:"festa-empadinha", nome:"Empadinha", emoji:"🥧", categoria:"assados", descricao:"Massa delicada e recheio cremoso.", sabores:["Frango","Palmito"], ativo:true, ordem:7, quantidadeInicial:50, incrementoQuantidade:50, quantidadeMaxima:500, preco50:0 }
 ];
 
 export let salgadosFesta = salgadosFestaBase.map(p => ({...p, __origem:"codigo"}));

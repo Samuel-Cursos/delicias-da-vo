@@ -31,6 +31,7 @@
       <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Dashboard</button>
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
       <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
+      <button class="tab-btn tab-encomendas" onclick="abrirAba('encomendas', this)">📅 Agenda de encomendas <span id="badgeEncomendas" class="badge-encomendas" hidden>0</span></button>
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
@@ -61,6 +62,7 @@
         <div class="stats-grid">
           <div class="stat destaque"><span>💰 Vendas hoje</span><strong id="statVendasHoje">R$ 0,00</strong><small id="statQtdVendas">0 vendas registradas</small></div>
           <div class="stat destaque-site"><span>📲 Pedidos pelo site</span><strong id="statPedidosSiteHoje">0</strong><small id="statUltimoPedidoSite">Nenhum pedido enviado hoje</small></div>
+          <div class="stat destaque-encomendas"><span>🔔 Novas encomendas</span><strong id="statNovasEncomendas">0</strong><small id="statProximaFesta">Nenhuma nova encomenda</small></div>
           <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
           <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
           <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
@@ -142,6 +144,38 @@
             </select>
           </div>
           <div id="listaFestaAdmin" class="festas-admin-grid"></div>
+        </div>
+      </section>
+
+      
+      <section class="aba" id="aba-encomendas">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Organização</p>
+            <h2>📅 Agenda de encomendas</h2>
+            <p>Acompanhe pedidos de festas e atualize cada etapa até a entrega.</p>
+          </div>
+        </div>
+        <div class="agenda-resumo">
+          <div class="agenda-stat"><span>Novas</span><strong id="agendaNovas">0</strong></div>
+          <div class="agenda-stat"><span>Confirmadas</span><strong id="agendaConfirmadas">0</strong></div>
+          <div class="agenda-stat"><span>Em produção</span><strong id="agendaProducao">0</strong></div>
+          <div class="agenda-stat"><span>Prontas</span><strong id="agendaProntas">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="agenda-toolbar">
+            <input id="buscaEncomenda" class="input-full" placeholder="Buscar cliente, número ou produto..." oninput="renderAgendaEncomendas()">
+            <select id="filtroEncomenda" onchange="renderAgendaEncomendas()">
+              <option value="todos">Todos os status</option>
+              <option value="aguardando_confirmacao">Aguardando confirmação</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="em_producao">Em produção</option>
+              <option value="pronto">Pronto</option>
+              <option value="entregue">Entregue</option>
+            </select>
+          </div>
+          <div id="statusAgendaEncomendas" class="festas-conexao-alerta"></div>
+          <div id="listaAgendaEncomendas" class="agenda-lista"></div>
         </div>
       </section>
 
@@ -475,6 +509,7 @@
         <label>Quantidade inicial<input id="festaQuantidadeInicial" type="number" min="50" step="50" value="50"><small>Primeira opção mostrada ao cliente</small></label>
         <label>Aumentar de quanto em quanto<input id="festaIncrementoQuantidade" type="number" min="50" step="50" value="50"><small>Ex.: 50 gera 50, 100, 150...</small></label>
         <label>Quantidade máxima<input id="festaQuantidadeMaxima" type="number" min="50" step="50" value="500"><small>Última opção exibida no seletor</small></label>
+        <label>Preço para 50 unidades (R$)<input id="festaPreco50" type="number" min="0" step="0.01" value="0"><small>Use 0 para mostrar “valor sob consulta”</small></label>
         <label class="check festa-check"><input id="festaAtivo" type="checkbox" checked><span><b>Produto ativo</b><small>Aparece na área de salgados para festas</small></span></label>
         <label class="full">Descrição<textarea id="festaDescricao" rows="3" placeholder="Descreva o produto de forma atrativa."></textarea></label>
         <label class="full">Sabores <small>Separe cada sabor por vírgula</small><input id="festaSabores" placeholder="Ex: Carne, Frango, Presunto e queijo"></label>

@@ -8,6 +8,7 @@ import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../servi
 import { createProductCard } from "../core/templates.js";
 import { gerarPedidoSite } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta } from "../services/partyProductService.js";
+import { registrarEncomendaFesta } from "../services/partyOrderService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -744,6 +745,7 @@ function renderSalgadosFesta(erro = null) {
         </div>
         <label><span>Quantidade</span><select class="festa-select-quantidade">${opcoesQuantidades}</select></label>
         <small class="festa-regra-quantidade">Acréscimos de ${Number(p.incrementoQuantidade || 50)} em ${Number(p.incrementoQuantidade || 50)} unidades.</small>
+        <div class="festa-preco">${Number(p.preco50 || 0) > 0 ? `<span>A partir de</span><strong>${formatarMoeda(Number(p.preco50))} / 50 un.</strong>` : `<span>Valor</span><strong>Sob consulta</strong>`}</div>
       </div>
       <button class="btn primary festa-add-btn">＋ Adicionar à encomenda</button>`;
 
@@ -778,8 +780,8 @@ function adicionarFesta(p, sabor, qtd) {
   const id = p.id + "__" + sabor;
   const item = encomendaFesta.find(i => i.id === id);
   const incremento = Math.max(50, Number(p.incrementoQuantidade || 50));
-  if (item) item.quantidade += qtd;
-  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, emoji:p.emoji || "🥟", sabor, quantidade:qtd, incremento });
+  if (item) { item.quantidade += qtd; item.preco50 = Number(p.preco50 || item.preco50 || 0); item.emoji = p.emoji || item.emoji || "🥟"; }
+  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, emoji:p.emoji || "🥟", sabor, quantidade:qtd, incremento, preco50:Number(p.preco50 || 0) });
   salvarLocal("deliciasFestaPedido", encomendaFesta);
   renderResumoFesta();
 }
@@ -800,11 +802,80 @@ function renderResumoFesta() {
     return;
   }
   const total = encomendaFesta.reduce((s, i) => s + Number(i.quantidade || 0), 0);
-  box.innerHTML = `<div class="festa-resumo-cabecalho"><div><span>🧺</span><div><b>Sua encomenda</b><small>${encomendaFesta.length} opção(ões) escolhida(s)</small></div></div><strong>${total} unidades</strong></div>` + encomendaFesta.map((i, n) => `
+  const totalEstimado = encomendaFesta.reduce((s, i) => s + (Number(i.preco50 || 0) * (Number(i.quantidade || 0) / 50)), 0);
+  const possuiPrecoPendente = encomendaFesta.some(i => Number(i.preco50 || 0) <= 0);
+  box.innerHTML = `<div class="festa-resumo-cabecalho"><div><span>🧺</span><div><b>Sua encomenda</b><small>${encomendaFesta.length} opção(ões) escolhida(s)</small></div></div><strong>${total} unidades</strong></div>` + encomendaFesta.map((i, n) => {
+    const subtotal = Number(i.preco50 || 0) * (Number(i.quantidade || 0) / 50);
+    return `
     <div class="festa-resumo-item">
-      <div class="festa-resumo-identidade"><span class="festa-resumo-icone">${i.emoji || (salgadosFesta.find(p => p.id === i.produtoId)?.emoji) || "🥟"}</span><div><b>${i.nome}</b><span>${i.sabor}</span></div></div>
+      <div class="festa-resumo-identidade"><span class="festa-resumo-icone">${i.emoji || (salgadosFesta.find(p => p.id === i.produtoId)?.emoji) || "🥟"}</span><div><b>${i.nome}</b><span>${i.sabor}${subtotal > 0 ? ` • ${formatarMoeda(subtotal)}` : " • sob consulta"}</span></div></div>
       <div class="festa-resumo-controles"><button aria-label="Diminuir" onclick="alterarFesta(${n},-1)">−</button><strong>${i.quantidade}</strong><button aria-label="Aumentar" onclick="alterarFesta(${n},1)">+</button></div>
-    </div>`).join("");
+    </div>`}).join("") + `<div class="festa-total-estimado"><span>Total estimado</span><strong>${totalEstimado > 0 ? formatarMoeda(totalEstimado) : "Sob consulta"}</strong>${possuiPrecoPendente ? "<small>Alguns itens ainda precisam de confirmação de valor.</small>" : "<small>Valor sujeito à confirmação da loja.</small>"}</div>`;
 }
-function enviarEncomendaFesta(){if(!encomendaFesta.length)return alert("Adicione pelo menos um salgado."); const nome=limparTexto(document.getElementById("nomeFestaCliente").value); if(!nome)return alert("Digite seu nome."); const data=document.getElementById("dataFesta").value; const obs=limparTexto(document.getElementById("obsFesta").value); const itens=encomendaFesta.map(i=>`• ${i.quantidade}x ${i.nome} — ${i.sabor}`).join("\n"); const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nCliente: ${nome}\n${data?`Data da festa: ${data}\n`:""}\n${itens}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`; window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`,"_blank");}
+let ultimoComprovanteFesta = null;
+
+async function enviarEncomendaFesta(){
+  if(!encomendaFesta.length) return alert("Adicione pelo menos um salgado.");
+  const nome=limparTexto(document.getElementById("nomeFestaCliente").value);
+  const telefone=limparTexto(document.getElementById("telefoneFestaCliente").value);
+  if(!nome) return alert("Digite seu nome.");
+  if(!telefone) return alert("Digite seu WhatsApp.");
+  const data=document.getElementById("dataFesta").value;
+  const obs=limparTexto(document.getElementById("obsFesta").value);
+  const totalUnidades=encomendaFesta.reduce((s,i)=>s+Number(i.quantidade||0),0);
+  const totalEstimado=encomendaFesta.reduce((s,i)=>s+(Number(i.preco50||0)*(Number(i.quantidade||0)/50)),0);
+  const itensPedido=encomendaFesta.map(i=>({
+    produtoId:i.produtoId, nome:i.nome, emoji:i.emoji||"🥟", sabor:i.sabor,
+    quantidade:Number(i.quantidade||0), preco50:Number(i.preco50||0),
+    subtotal:Number(i.preco50||0)*(Number(i.quantidade||0)/50)
+  }));
+
+  const botao=document.querySelector('.festa-pedido-box .btn-whatsapp');
+  if(botao){botao.disabled=true;botao.textContent="⏳ Registrando encomenda...";}
+  try{
+    const pedido=await registrarEncomendaFesta({
+      cliente:{nome,telefone},
+      dataFesta:data||"",
+      observacoes:obs,
+      itens:itensPedido,
+      totalUnidades,
+      totalEstimado
+    });
+    const linhas=itensPedido.map(i=>`• ${i.quantidade}x ${i.nome} — ${i.sabor}${i.subtotal>0?` (${formatarMoeda(i.subtotal)})`:" (valor sob consulta)"}`).join("\n");
+    const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nPedido: ${pedido.numero}\nCliente: ${nome}\nWhatsApp: ${telefone}\n${data?`Data da festa: ${data}\n`:""}\n${linhas}\n\nTotal: ${totalEstimado>0?formatarMoeda(totalEstimado):"sob consulta"}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`;
+    ultimoComprovanteFesta={pedido,msg};
+    mostrarComprovanteFesta(pedido);
+    window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`,"_blank");
+  }catch(erro){
+    console.error("Erro ao registrar encomenda:",erro);
+    alert("Não foi possível registrar a encomenda. Confira a conexão e as permissões do Firestore.");
+  }finally{
+    if(botao){botao.disabled=false;botao.textContent="💬 Enviar encomenda pelo WhatsApp";}
+  }
+}
+function mostrarComprovanteFesta(pedido){
+  const modal=document.getElementById("modalComprovanteFesta");
+  const box=document.getElementById("conteudoComprovanteFesta");
+  const itens=(pedido.itens||[]).map(i=>`<div><span>${i.emoji||"🥟"} ${i.nome} — ${i.sabor}</span><strong>${i.quantidade}</strong></div>`).join("");
+  box.innerHTML=`<div class="comprovante-numero"><span>Número do pedido</span><strong>${pedido.numero}</strong></div>
+  <div class="comprovante-linha"><span>Cliente</span><strong>${pedido.cliente?.nome||""}</strong></div>
+  <div class="comprovante-linha"><span>Data da festa</span><strong>${pedido.dataFesta||"A combinar"}</strong></div>
+  <div class="comprovante-itens">${itens}</div>
+  <div class="comprovante-total"><span>Total estimado</span><strong>${Number(pedido.totalEstimado||0)>0?formatarMoeda(pedido.totalEstimado):"Sob consulta"}</strong></div>
+  <small>O pedido ainda depende da confirmação da Delícias da Vó.</small>`;
+  modal?.classList.add("aberto");
+}
+function fecharComprovanteFesta(){document.getElementById("modalComprovanteFesta")?.classList.remove("aberto");}
+async function copiarComprovanteFesta(){
+  if(!ultimoComprovanteFesta) return;
+  try{await navigator.clipboard.writeText(ultimoComprovanteFesta.msg); alert("Resumo copiado!");}
+  catch{alert("Não foi possível copiar automaticamente.");}
+}
+function abrirWhatsAppComprovante(){
+  if(!ultimoComprovanteFesta) return;
+  window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(ultimoComprovanteFesta.msg)}`,"_blank");
+}
+window.fecharComprovanteFesta=fecharComprovanteFesta;
+window.copiarComprovanteFesta=copiarComprovanteFesta;
+window.abrirWhatsAppComprovante=abrirWhatsAppComprovante;
 window.abrirAreaFestas=abrirAreaFestas; window.voltarCardapioPrincipal=voltarCardapioPrincipal; window.alterarFesta=alterarFesta; window.enviarEncomendaFesta=enviarEncomendaFesta;
