@@ -7,6 +7,7 @@ import { lojaConfig, observarConfiguracoesLoja } from "../services/configService
 import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../services/promotionService.js";
 import { createProductCard } from "../core/templates.js";
 import { gerarPedidoSite } from "../services/orderService.js";
+import { salgadosFesta, observarSalgadosFesta } from "../services/partyProductService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -14,6 +15,7 @@ let pendingSaborProdutoId = null;
 
 iniciarAuth();
 iniciarSplashScreen();
+observarSalgadosFesta((_, erro) => renderSalgadosFesta(erro));
 
 observarProdutos(() => {
   renderCategoriasSite();
@@ -683,3 +685,98 @@ async function finalizarPedidoImpl() {
 
 window.alterarItem = alterarItemImpl;
 window.finalizarPedido = finalizarPedidoImpl;
+
+
+let encomendaFesta = carregarLocal("deliciasFestaPedido", []);
+function abrirAreaFestas(){ document.getElementById("areaPrincipal").hidden=true; document.getElementById("areaFestas").hidden=false; document.getElementById("btnFestasTopo").textContent="🏠 Cardápio principal"; document.getElementById("btnFestasTopo").onclick=voltarCardapioPrincipal; window.scrollTo({top:0,behavior:"smooth"}); renderSalgadosFesta(); }
+function voltarCardapioPrincipal(){ document.getElementById("areaFestas").hidden=true; document.getElementById("areaPrincipal").hidden=false; const b=document.getElementById("btnFestasTopo"); b.textContent="🎉 Salgados para Festas"; b.onclick=abrirAreaFestas; window.scrollTo({top:0,behavior:"smooth"}); }
+function opcoesQuantidadeFesta(produto) {
+  const inicial = Math.max(50, Number(produto.quantidadeInicial || 50));
+  const incremento = Math.max(50, Number(produto.incrementoQuantidade || 50));
+  const maxima = Math.max(inicial, Number(produto.quantidadeMaxima || 500));
+  const valores = [];
+  for (let quantidade = inicial; quantidade <= maxima; quantidade += incremento) valores.push(quantidade);
+  return valores.length ? valores : [50, 100, 150, 200];
+}
+
+function renderSalgadosFesta(erro = null) {
+  const fritos = document.getElementById("festaFritos");
+  const assados = document.getElementById("festaAssados");
+  if (!fritos || !assados) return;
+
+  fritos.innerHTML = "";
+  assados.innerHTML = "";
+
+  salgadosFesta.filter(p => p.ativo !== false).forEach(p => {
+    const card = document.createElement("article");
+    card.className = `festa-produto-card ${p.categoria}`;
+    const sabores = Array.isArray(p.sabores) && p.sabores.length ? p.sabores : ["Tradicional"];
+    const opcoesSabores = sabores.map(x => `<option value="${x.replace(/"/g, '&quot;')}">${x}</option>`).join("");
+    const quantidades = opcoesQuantidadeFesta(p);
+    const opcoesQuantidades = quantidades.map((q, i) => `<option value="${q}" ${i === 0 ? "selected" : ""}>${q} unidades</option>`).join("");
+
+    card.innerHTML = `
+      <div class="festa-card-decor" aria-hidden="true">✦</div>
+      <div class="festa-card-top">
+        <span class="festa-emoji">${p.emoji || "🥟"}</span>
+        <span class="festa-tipo">${p.categoria === "assados" ? "🔥 Assado" : "🍳 Frito"}</span>
+      </div>
+      <h3>${p.nome}</h3>
+      <p class="festa-card-descricao">${p.descricao || "Feito com carinho para sua festa."}</p>
+      <div class="festa-configurador">
+        <div class="festa-configurador-title"><span>✨</span><div><b>Monte sua encomenda</b><small>Escolha o sabor e a quantidade</small></div></div>
+        <label><span>Sabor</span><select class="festa-select-sabor">${opcoesSabores}</select></label>
+        <label><span>Quantidade</span><select class="festa-select-quantidade">${opcoesQuantidades}</select></label>
+        <small class="festa-regra-quantidade">Acréscimos de ${Number(p.incrementoQuantidade || 50)} em ${Number(p.incrementoQuantidade || 50)} unidades.</small>
+      </div>
+      <button class="btn primary festa-add-btn">＋ Adicionar à encomenda</button>`;
+
+    card.querySelector("button").onclick = () => {
+      const sabor = card.querySelector(".festa-select-sabor").value;
+      const quantidade = Number(card.querySelector(".festa-select-quantidade").value);
+      adicionarFesta(p, sabor, quantidade);
+    };
+    (p.categoria === "assados" ? assados : fritos).appendChild(card);
+  });
+
+  const st = document.getElementById("statusFestas");
+  if (st) {
+    st.textContent = erro ? "O catálogo padrão está disponível. Os produtos novos voltarão quando a conexão for restabelecida." : "";
+    st.style.display = erro ? "block" : "none";
+  }
+  renderResumoFesta();
+}
+function adicionarFesta(p, sabor, qtd) {
+  const id = p.id + "__" + sabor;
+  const item = encomendaFesta.find(i => i.id === id);
+  const incremento = Math.max(50, Number(p.incrementoQuantidade || 50));
+  if (item) item.quantidade += qtd;
+  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, sabor, quantidade:qtd, incremento });
+  salvarLocal("deliciasFestaPedido", encomendaFesta);
+  renderResumoFesta();
+}
+function alterarFesta(i, delta) {
+  const item = encomendaFesta[i];
+  if (!item) return;
+  const incremento = Math.max(50, Number(item.incremento || 50));
+  item.quantidade += delta > 0 ? incremento : -incremento;
+  if (item.quantidade <= 0) encomendaFesta.splice(i, 1);
+  salvarLocal("deliciasFestaPedido", encomendaFesta);
+  renderResumoFesta();
+}
+function renderResumoFesta() {
+  const box = document.getElementById("resumoFestaPedido");
+  if (!box) return;
+  if (!encomendaFesta.length) {
+    box.innerHTML = '<div class="festa-vazio"><span>🎈</span><div><b>Sua encomenda está vazia</b><p>Escolha um salgado, um sabor e a quantidade para começar.</p></div></div>';
+    return;
+  }
+  const total = encomendaFesta.reduce((s, i) => s + Number(i.quantidade || 0), 0);
+  box.innerHTML = `<div class="festa-resumo-cabecalho"><div><span>🧺</span><div><b>Sua encomenda</b><small>${encomendaFesta.length} opção(ões) escolhida(s)</small></div></div><strong>${total} unidades</strong></div>` + encomendaFesta.map((i, n) => `
+    <div class="festa-resumo-item">
+      <div class="festa-resumo-identidade"><span class="festa-resumo-icone">🥟</span><div><b>${i.nome}</b><span>${i.sabor}</span></div></div>
+      <div class="festa-resumo-controles"><button aria-label="Diminuir" onclick="alterarFesta(${n},-1)">−</button><strong>${i.quantidade}</strong><button aria-label="Aumentar" onclick="alterarFesta(${n},1)">+</button></div>
+    </div>`).join("");
+}
+function enviarEncomendaFesta(){if(!encomendaFesta.length)return alert("Adicione pelo menos um salgado."); const nome=limparTexto(document.getElementById("nomeFestaCliente").value); if(!nome)return alert("Digite seu nome."); const data=document.getElementById("dataFesta").value; const obs=limparTexto(document.getElementById("obsFesta").value); const itens=encomendaFesta.map(i=>`• ${i.quantidade}x ${i.nome} — ${i.sabor}`).join("\n"); const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nCliente: ${nome}\n${data?`Data da festa: ${data}\n`:""}\n${itens}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`; window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`,"_blank");}
+window.abrirAreaFestas=abrirAreaFestas; window.voltarCardapioPrincipal=voltarCardapioPrincipal; window.alterarFesta=alterarFesta; window.enviarEncomendaFesta=enviarEncomendaFesta;

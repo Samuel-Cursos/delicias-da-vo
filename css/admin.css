@@ -228,3 +228,139 @@ button{cursor:pointer;border:0}
   min-height: 72px;
   resize: vertical;
 }
+
+/* V4.9.1 - Painel de salgados para festas */
+.festas-panel-head {
+  padding: 20px 22px;
+  background: linear-gradient(135deg, #fffaf1 0%, #fff 55%, #fff3d6 100%);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 10px 28px rgba(90,46,29,.09);
+}
+
+.festas-panel-head h2 { color: var(--brown); font-size: 1.65rem; }
+.festas-novo-btn { box-shadow: 0 8px 18px rgba(90,46,29,.2); transition: .2s; }
+.festas-novo-btn:hover { transform: translateY(-2px); background: #6f3824; }
+
+.festas-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.festas-resumo-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 15px 17px;
+  box-shadow: 0 8px 22px rgba(90,46,29,.07);
+}
+.festas-resumo-card span { display:block; color:var(--muted); font-size:.82rem; font-weight:800; }
+.festas-resumo-card strong { display:block; margin-top:4px; color:var(--brown); font-size:1.55rem; }
+
+.festas-admin-panel { padding: 18px; }
+.festas-toolbar { display:grid; grid-template-columns:1fr minmax(210px, 280px); gap:12px; margin-bottom:16px; }
+.festas-busca { display:flex; align-items:center; gap:9px; border:1px solid var(--line); background:var(--cream); border-radius:14px; padding:0 12px; }
+.festas-busca input { border:0!important; background:transparent!important; margin:0!important; padding:12px 0!important; outline:none; }
+.festas-toolbar select { width:100%; border:1px solid var(--line); background:#fff; color:var(--text); border-radius:14px; padding:12px; font-weight:800; outline:none; }
+
+.festas-conexao-alerta {
+  display:none;
+  align-items:flex-start;
+  gap:11px;
+  margin:0 0 16px;
+  padding:13px 15px;
+  border:1px solid #fdba74;
+  border-radius:16px;
+  background:#fff7ed;
+  color:#9a3412;
+}
+.festas-conexao-alerta > span { font-size:1.25rem; }
+.festas-conexao-alerta strong,.festas-conexao-alerta p { display:block; }
+.festas-conexao-alerta p { margin-top:3px; color:#9a3412; font-size:.86rem; }
+
+.festas-admin-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+.festa-admin-card {
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:260px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:21px;
+  box-shadow:0 9px 24px rgba(90,46,29,.09);
+  transition:transform .2s, box-shadow .2s, opacity .2s;
+}
+.festa-admin-card::before { content:""; position:absolute; inset:0 0 auto 0; height:4px; background:linear-gradient(90deg,var(--gold),#e56b2f); }
+.festa-admin-card:hover { transform:translateY(-2px); box-shadow:0 14px 30px rgba(90,46,29,.14); }
+.festa-admin-card.is-inactive { opacity:.72; filter:saturate(.75); }
+
+.festa-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:18px 18px 10px; }
+.festa-identidade { display:flex; align-items:flex-start; gap:12px; min-width:0; }
+.festa-emoji { display:grid; place-items:center; flex:0 0 48px; height:48px; border-radius:15px; background:linear-gradient(145deg,#fff7df,#ffe2a4); font-size:1.7rem; border:1px solid #f6d28a; }
+.festa-identidade h3 { color:var(--brown); font-size:1.12rem; line-height:1.2; overflow-wrap:anywhere; }
+.festa-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.festa-tipo,.festa-status { display:inline-flex; align-items:center; padding:5px 8px; border-radius:999px; font-size:.7rem; font-weight:900; }
+.tipo-frito { background:#fff1d6; color:#9a4b00; }
+.tipo-assado { background:#ffedd5; color:#9a3412; }
+.status-ativo { background:#dcfce7; color:var(--green); }
+.status-inativo { background:#e5e7eb; color:#4b5563; }
+.festa-ordem { flex:0 0 auto; padding:5px 8px; border-radius:9px; background:var(--cream-2); color:var(--muted); font-size:.72rem; font-weight:900; }
+
+.festa-card-content { flex:1; padding:4px 18px 16px; }
+.festa-descricao { color:var(--muted); font-size:.88rem; line-height:1.45; margin-bottom:12px; }
+.festa-sabores-titulo { display:block; color:var(--brown); font-size:.76rem; font-weight:900; margin-bottom:8px; }
+.festa-sabores { display:flex; flex-wrap:wrap; gap:6px; }
+.festa-sabores span { padding:6px 9px; background:var(--cream); border:1px solid var(--line); color:#65432f; border-radius:999px; font-size:.76rem; font-weight:800; }
+
+.festa-card-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:13px 15px 15px; border-top:1px solid #f4dfc8; background:#fffaf3; }
+.festa-btn { display:flex; align-items:center; justify-content:center; gap:5px; min-height:39px; border-radius:11px; padding:9px 8px; font-size:.78rem; font-weight:900; transition:.18s; }
+.festa-btn:hover { transform:translateY(-1px); filter:brightness(.97); }
+.festa-btn-editar { background:var(--gold); color:#3a2417; }
+.festa-btn-desativar { background:var(--brown); color:#fff; }
+.festa-btn-ativar { background:#dcfce7; color:var(--green); }
+.festa-btn-excluir { background:#fee2e2; color:var(--red); }
+
+.festas-empty-state { grid-column:1/-1; display:grid; place-items:center; text-align:center; min-height:230px; padding:25px; border:2px dashed var(--line); border-radius:20px; background:var(--cream); }
+.festas-empty-state span { font-size:2.5rem; }
+.festas-empty-state strong { margin-top:8px; color:var(--brown); font-size:1.05rem; }
+.festas-empty-state p { margin-top:5px; color:var(--muted); }
+
+#modalFesta .modal-box { max-width:760px; }
+#modalFesta .modal-box > h2 { padding-right:45px; color:var(--brown); }
+#modalFesta .form-grid { background:#fff; border:1px solid var(--line); border-radius:20px; padding:16px; }
+#modalFesta .form-grid textarea { min-height:100px; resize:vertical; }
+#modalFesta .modal-actions .primary-btn { background:var(--brown); color:#fff; }
+
+@media(max-width:900px){
+  .festas-resumo{grid-template-columns:repeat(2,1fr)}
+  .festas-toolbar{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .festas-panel-head{padding:17px}
+  .festas-admin-grid{grid-template-columns:1fr}
+  .festas-resumo{grid-template-columns:repeat(2,1fr)}
+  .festa-card-actions{grid-template-columns:1fr}
+  .festa-btn{justify-content:flex-start;padding-left:14px}
+}
+
+
+/* V4.9.2 - Formulário completo de salgados para festas */
+#modalFesta .modal-box{width:min(820px,100%);max-height:92vh;overflow:auto;background:linear-gradient(180deg,#fffdf8,#fff8ed)}#modalFesta .modal-box>h2{padding-right:45px;color:var(--brown);margin-bottom:5px}#modalFesta .modal-box>h2::before{content:"🎉 ";}.festa-form-grid{margin-top:18px;padding:18px;border:1px solid #edd8c0;border-radius:20px;background:#fff;box-shadow:0 8px 24px rgba(90,46,29,.06)}.festa-form-grid label{padding:10px;border-radius:14px;background:#fffaf3;border:1px solid #f1e1d1}.festa-form-grid label:focus-within{border-color:#d79b4a;box-shadow:0 0 0 3px rgba(215,155,74,.12)}.festa-form-grid input,.festa-form-grid select,.festa-form-grid textarea{margin-top:7px!important;background:#fff!important}.festa-form-grid label>small{display:block;margin-top:5px;color:var(--muted);font-size:.72rem;line-height:1.3}.festa-check{display:flex!important;align-items:center;gap:10px;min-height:74px}.festa-check input{width:20px!important;height:20px!important;margin:0!important}.festa-check span b,.festa-check span small{display:block}.festa-check span small{margin-top:3px;color:var(--muted);font-size:.72rem}.festa-quantidade-info{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 13px}.festa-quantidade-info span{padding:8px 9px;border-radius:10px;background:#fff7e8;border:1px solid #f0dcc4;color:#6d4a36;font-size:.72rem}.festa-quantidade-info b{color:var(--brown)}
+@media(max-width:680px){.festa-quantidade-info{grid-template-columns:1fr}.festa-form-grid{padding:11px}.festa-form-grid label{padding:9px}}
+
+/* Migração e origem dos salgados de festa */
+.festas-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.festas-migrar-btn{border:1px solid #d8b985;background:#fffaf0;color:#6f431d;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(91,54,22,.08)}
+.festas-migrar-btn:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(91,54,22,.12)}
+.festas-migrar-btn:disabled{opacity:.65;cursor:wait;transform:none}
+.festas-migracao-retorno{display:none;margin:0 0 14px;padding:12px 15px;border-radius:12px;font-weight:700}
+.festas-migracao-retorno:not(:empty){display:block;background:#fff8e9;border:1px solid #ead5a7;color:#72501d}
+.festas-migracao-retorno.sucesso{background:#edf9f0;border-color:#b7dfc0;color:#286136}
+.festas-migracao-retorno.erro{background:#fff0ef;border-color:#efc0bc;color:#8b2d26}
+.festa-origem{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:.72rem;font-weight:800;border:1px solid transparent}
+.origem-firestore{background:#edf6ff;color:#245d91;border-color:#c9e2f7}
+.origem-codigo{background:#fff5df;color:#7e5419;border-color:#ead1a0}
+@media(max-width:720px){.festas-head-actions{width:100%;justify-content:stretch}.festas-head-actions button{flex:1 1 100%}}

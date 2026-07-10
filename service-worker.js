@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v4-7-pwa";
+const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -6,6 +6,7 @@ const ARQUIVOS_CACHE = [
   "/manifest.json",
   "/css/site.css",
   "/js/storefront/site.js",
+  "/js/services/partyProductService.js",
   "/assets/logo-delicias-da-vo.png",
   "/assets/icon-192.png",
   "/assets/icon-512.png",

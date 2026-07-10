@@ -30,6 +30,7 @@
 
       <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Dashboard</button>
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
+      <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
@@ -101,6 +102,47 @@
 
         <input class="input-full" id="buscaAdminProduto" placeholder="Pesquisar produto..." oninput="renderProdutosAdmin()" />
         <div id="listaProdutosAdmin" class="lista-produtos-admin"></div>
+      </section>
+
+
+      <section class="aba" id="aba-festas">
+        <div class="panel-head festas-panel-head">
+          <div>
+            <p class="eyebrow">Encomendas</p>
+            <h2>🎉 Salgados para festas</h2>
+            <p>Gerencie os salgados vendidos por cento, sabores e disponibilidade.</p>
+          </div>
+          <div class="festas-head-actions">
+            <button id="btnMigrarFestas" class="secondary-btn festas-migrar-btn" onclick="migrarFestasParaFirestore()">☁️ Enviar produtos atuais para o Firestore</button>
+            <button class="primary-btn festas-novo-btn" onclick="abrirModalFesta()">➕ Novo produto</button>
+          </div>
+        </div>
+        <div id="retornoMigracaoFestas" class="festas-migracao-retorno" aria-live="polite"></div>
+
+        <div class="festas-resumo" aria-label="Resumo dos salgados para festas">
+          <div class="festas-resumo-card"><span>Produtos</span><strong id="festaTotalProdutos">0</strong></div>
+          <div class="festas-resumo-card"><span>Ativos</span><strong id="festaTotalAtivos">0</strong></div>
+          <div class="festas-resumo-card"><span>Fritos</span><strong id="festaTotalFritos">0</strong></div>
+          <div class="festas-resumo-card"><span>Assados</span><strong id="festaTotalAssados">0</strong></div>
+        </div>
+
+        <div class="panel festas-admin-panel">
+          <div id="statusFestaAdmin" class="festas-conexao-alerta" role="status"></div>
+          <div class="festas-toolbar">
+            <label class="festas-busca">
+              <span>🔎</span>
+              <input id="buscaFestaAdmin" type="search" placeholder="Pesquisar produto ou sabor..." oninput="renderFestasAdmin()">
+            </label>
+            <select id="filtroFestaAdmin" onchange="renderFestasAdmin()" aria-label="Filtrar salgados para festas">
+              <option value="todos">Todos os produtos</option>
+              <option value="fritos">Somente fritos</option>
+              <option value="assados">Somente assados</option>
+              <option value="ativos">Somente ativos</option>
+              <option value="inativos">Somente inativos</option>
+            </select>
+          </div>
+          <div id="listaFestaAdmin" class="festas-admin-grid"></div>
+        </div>
       </section>
 
       <section class="aba" id="aba-venda">
@@ -419,6 +461,25 @@
         <button onclick="fecharModalCategoria()">Cancelar</button>
         <button class="primary-btn" onclick="salvarCategoriaAdmin()">Salvar categoria</button>
       </div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="modalFesta">
+    <div class="modal-box"><button class="modal-close" onclick="fecharModalFesta()">✕</button><h2 id="tituloModalFesta">Novo salgado para festa</h2>
+      <div class="form-grid festa-form-grid">
+        <label>Nome do produto<input id="festaNome" placeholder="Ex: Mini pastel"></label>
+        <label>Emoji<input id="festaEmoji" placeholder="🥟" maxlength="8"></label>
+        <label>Tipo<select id="festaCategoria"><option value="fritos">🍳 Frito</option><option value="assados">🔥 Assado</option></select></label>
+        <label>Ordem de exibição<input id="festaOrdem" type="number" min="1" step="1" value="99"></label>
+        <label>Quantidade inicial<input id="festaQuantidadeInicial" type="number" min="50" step="50" value="50"><small>Primeira opção mostrada ao cliente</small></label>
+        <label>Aumentar de quanto em quanto<input id="festaIncrementoQuantidade" type="number" min="50" step="50" value="50"><small>Ex.: 50 gera 50, 100, 150...</small></label>
+        <label>Quantidade máxima<input id="festaQuantidadeMaxima" type="number" min="50" step="50" value="500"><small>Última opção exibida no seletor</small></label>
+        <label class="check festa-check"><input id="festaAtivo" type="checkbox" checked><span><b>Produto ativo</b><small>Aparece na área de salgados para festas</small></span></label>
+        <label class="full">Descrição<textarea id="festaDescricao" rows="3" placeholder="Descreva o produto de forma atrativa."></textarea></label>
+        <label class="full">Sabores <small>Separe cada sabor por vírgula</small><input id="festaSabores" placeholder="Ex: Carne, Frango, Presunto e queijo"></label>
+      </div>
+      <div class="modal-actions"><button onclick="fecharModalFesta()">Cancelar</button><button class="primary-btn" onclick="salvarFestaAdmin()">Salvar produto</button></div>
     </div>
   </div>
 

@@ -10,12 +10,14 @@ import { iniciarCategoriasAdmin, abrirModalCategoria, fecharModalCategoria, salv
 import { createProductAdminRow, createPromoAdminCard } from "../core/templates.js";
 import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "../core/firebase.js";
 import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
+import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore } from "../services/partyProductService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
 let produtoEditando = null;
 let vendaAtual = [];
 let promocaoEditando = null;
+let festaEditando = null;
 
 iniciarAuth();
 
@@ -28,6 +30,7 @@ function iniciarAdminDepoisLogin() {
   });
 
   iniciarCategoriasAdmin();
+  observarSalgadosFesta((_, erro) => renderFestasAdmin(erro));
 
   observarVendasHoje(() => {
     renderDashboard();
@@ -65,6 +68,7 @@ function abrirAba(nome, botao) {
     caixa: "Caixa",
     promocoes: "Promoções",
     categorias: "Categorias",
+    festas: "Salgados para festas",
     config: "Configurações"
   };
 
@@ -1089,3 +1093,228 @@ window.atualizarCampoSelecaoProduto = atualizarCampoSelecaoProduto;
 window.salvarConfiguracoesLoja = salvarConfiguracoesLoja;
 window.copiarHorarioParaTodos = copiarHorarioParaTodos;
 window.copiarSegundaParaTodos = copiarSegundaParaTodos;
+
+
+function renderFestasAdmin(erro = null) {
+  const box = document.getElementById("listaFestaAdmin");
+  if (!box) return;
+
+  const busca = (document.getElementById("buscaFestaAdmin")?.value || "").trim().toLowerCase();
+  const filtro = document.getElementById("filtroFestaAdmin")?.value || "todos";
+
+  const lista = [...salgadosFesta]
+    .sort((a, b) => Number(a.ordem || 99) - Number(b.ordem || 99) || String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"))
+    .filter((p) => {
+      const texto = `${p.nome || ""} ${(p.sabores || []).join(" ")} ${p.descricao || ""}`.toLowerCase();
+      const correspondeBusca = !busca || texto.includes(busca);
+      const correspondeFiltro =
+        filtro === "todos" ||
+        (filtro === "fritos" && p.categoria !== "assados") ||
+        (filtro === "assados" && p.categoria === "assados") ||
+        (filtro === "ativos" && p.ativo !== false) ||
+        (filtro === "inativos" && p.ativo === false);
+      return correspondeBusca && correspondeFiltro;
+    });
+
+  const total = salgadosFesta.length;
+  const ativos = salgadosFesta.filter((p) => p.ativo !== false).length;
+  const fritos = salgadosFesta.filter((p) => p.categoria !== "assados").length;
+  const assados = salgadosFesta.filter((p) => p.categoria === "assados").length;
+  const resumo = {
+    festaTotalProdutos: total,
+    festaTotalAtivos: ativos,
+    festaTotalFritos: fritos,
+    festaTotalAssados: assados,
+  };
+  Object.entries(resumo).forEach(([id, valor]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = valor;
+  });
+
+  box.innerHTML = "";
+
+  if (!lista.length) {
+    const vazio = document.createElement("div");
+    vazio.className = "festas-empty-state";
+    vazio.innerHTML = `<span>🥟</span><strong>Nenhum produto encontrado</strong><p>Tente mudar a pesquisa ou o filtro selecionado.</p>`;
+    box.appendChild(vazio);
+  }
+
+  lista.forEach((p) => {
+    const ativo = p.ativo !== false;
+    const assado = p.categoria === "assados";
+    const sabores = Array.isArray(p.sabores) ? p.sabores : [];
+
+    const card = document.createElement("article");
+    card.className = `festa-admin-card ${ativo ? "is-active" : "is-inactive"}`;
+
+    const topo = document.createElement("div");
+    topo.className = "festa-card-top";
+
+    const identidade = document.createElement("div");
+    identidade.className = "festa-identidade";
+    identidade.innerHTML = `
+      <span class="festa-emoji">${p.emoji || "🥟"}</span>
+      <div>
+        <h3>${p.nome || "Produto sem nome"}</h3>
+        <div class="festa-badges">
+          <span class="festa-tipo ${assado ? "tipo-assado" : "tipo-frito"}">${assado ? "🔥 Assado" : "🍳 Frito"}</span>
+          <span class="festa-status ${ativo ? "status-ativo" : "status-inativo"}">${ativo ? "● Ativo" : "● Inativo"}</span>
+          <span class="festa-origem ${p.__origem === "firestore" ? "origem-firestore" : "origem-codigo"}">${p.__origem === "firestore" ? "☁️ Salvo no Firestore" : "💻 Somente no código"}</span>
+        </div>
+      </div>`;
+
+    const ordem = document.createElement("span");
+    ordem.className = "festa-ordem";
+    ordem.title = "Ordem de exibição";
+    ordem.textContent = `#${Number(p.ordem || 99)}`;
+    topo.append(identidade, ordem);
+
+    const conteudo = document.createElement("div");
+    conteudo.className = "festa-card-content";
+
+    if (p.descricao) {
+      const descricao = document.createElement("p");
+      descricao.className = "festa-descricao";
+      descricao.textContent = p.descricao;
+      conteudo.appendChild(descricao);
+    }
+
+    const quantidadeInfo = document.createElement("div");
+    quantidadeInfo.className = "festa-quantidade-info";
+    quantidadeInfo.innerHTML = `<span>📦 A partir de <b>${Number(p.quantidadeInicial || 50)}</b></span><span>➕ De <b>${Number(p.incrementoQuantidade || 50)} em ${Number(p.incrementoQuantidade || 50)}</b></span><span>🔢 Até <b>${Number(p.quantidadeMaxima || 500)}</b></span>`;
+    conteudo.appendChild(quantidadeInfo);
+
+    const tituloSabores = document.createElement("span");
+    tituloSabores.className = "festa-sabores-titulo";
+    tituloSabores.textContent = sabores.length ? `${sabores.length} sabor(es)` : "Sem sabores cadastrados";
+    conteudo.appendChild(tituloSabores);
+
+    if (sabores.length) {
+      const chips = document.createElement("div");
+      chips.className = "festa-sabores";
+      sabores.forEach((sabor) => {
+        const chip = document.createElement("span");
+        chip.textContent = sabor;
+        chips.appendChild(chip);
+      });
+      conteudo.appendChild(chips);
+    }
+
+    const acoes = document.createElement("div");
+    acoes.className = "festa-card-actions";
+
+    const editar = document.createElement("button");
+    editar.className = "festa-btn festa-btn-editar";
+    editar.innerHTML = "✏️ <span>Editar</span>";
+    editar.onclick = () => abrirModalFesta(p.id);
+
+    const alternar = document.createElement("button");
+    alternar.className = `festa-btn ${ativo ? "festa-btn-desativar" : "festa-btn-ativar"}`;
+    alternar.innerHTML = ativo ? "⏸️ <span>Desativar</span>" : "▶️ <span>Ativar</span>";
+    alternar.onclick = async () => {
+      try {
+        await salvarSalgadoFesta({ ...p, ativo: !ativo });
+      } catch (e) {
+        console.error(e);
+        alert(descreverErroFirestore(e));
+      }
+    };
+
+    const excluir = document.createElement("button");
+    excluir.className = "festa-btn festa-btn-excluir";
+    excluir.innerHTML = "🗑️ <span>Excluir</span>";
+    excluir.onclick = async () => {
+      if (!confirm(`Excluir ${p.nome}? Esta ação não pode ser desfeita.`)) return;
+      try {
+        await excluirSalgadoFesta(p.id);
+      } catch (e) {
+        console.error(e);
+        alert(descreverErroFirestore(e));
+      }
+    };
+
+    acoes.append(editar, alternar, excluir);
+    card.append(topo, conteudo, acoes);
+    box.appendChild(card);
+  });
+
+  const st = document.getElementById("statusFestaAdmin");
+  if (st) {
+    st.innerHTML = erro
+      ? `<span>⚠️</span><div><strong>Não foi possível acessar o Firestore</strong><p>${descreverErroFirestore(erro)} Os produtos padrão continuam aparecendo no site.</p></div>`
+      : "";
+    st.style.display = erro ? "flex" : "none";
+  }
+}
+function abrirModalFesta(id = null) {
+  festaEditando = salgadosFesta.find(p => p.id === id) || null;
+  document.getElementById("tituloModalFesta").textContent = festaEditando ? "Editar salgado para festa" : "Novo salgado para festa";
+  document.getElementById("festaNome").value = festaEditando?.nome || "";
+  document.getElementById("festaEmoji").value = festaEditando?.emoji || "🥟";
+  document.getElementById("festaCategoria").value = festaEditando?.categoria || "fritos";
+  document.getElementById("festaOrdem").value = Number(festaEditando?.ordem ?? 99);
+  document.getElementById("festaQuantidadeInicial").value = Number(festaEditando?.quantidadeInicial ?? 50);
+  document.getElementById("festaIncrementoQuantidade").value = Number(festaEditando?.incrementoQuantidade ?? 50);
+  document.getElementById("festaQuantidadeMaxima").value = Number(festaEditando?.quantidadeMaxima ?? 500);
+  document.getElementById("festaDescricao").value = festaEditando?.descricao || "";
+  document.getElementById("festaSabores").value = (festaEditando?.sabores || []).join(", ");
+  document.getElementById("festaAtivo").checked = festaEditando?.ativo !== false;
+  document.getElementById("modalFesta").classList.add("aberto");
+}
+function fecharModalFesta() {
+  document.getElementById("modalFesta").classList.remove("aberto");
+  festaEditando = null;
+}
+async function salvarFestaAdmin() {
+  const nome = limparTexto(document.getElementById("festaNome").value);
+  if (!nome) return alert("Digite o nome do produto.");
+
+  const quantidadeInicial = Number(document.getElementById("festaQuantidadeInicial").value || 50);
+  const incrementoQuantidade = Number(document.getElementById("festaIncrementoQuantidade").value || 50);
+  const quantidadeMaxima = Number(document.getElementById("festaQuantidadeMaxima").value || 500);
+
+  if (quantidadeInicial < 50 || quantidadeInicial % 50 !== 0) return alert("A quantidade inicial precisa ser múltipla de 50.");
+  if (incrementoQuantidade < 50 || incrementoQuantidade % 50 !== 0) return alert("O aumento precisa ser de 50 em 50 ou outro múltiplo de 50.");
+  if (quantidadeMaxima < quantidadeInicial) return alert("A quantidade máxima não pode ser menor que a quantidade inicial.");
+
+  const item = {
+    id: festaEditando?.id || gerarId("festa-" + nome),
+    nome,
+    emoji: limparTexto(document.getElementById("festaEmoji").value) || "🥟",
+    categoria: document.getElementById("festaCategoria").value,
+    ordem: Number(document.getElementById("festaOrdem").value || 99),
+    quantidadeInicial,
+    incrementoQuantidade,
+    quantidadeMaxima,
+    descricao: limparTexto(document.getElementById("festaDescricao").value),
+    sabores: document.getElementById("festaSabores").value.split(",").map(limparTexto).filter(Boolean),
+    ativo: document.getElementById("festaAtivo").checked
+  };
+
+  try {
+    await salvarSalgadoFesta(item);
+    fecharModalFesta();
+  } catch (e) {
+    console.error(e);
+    alert(descreverErroFirestore(e));
+  }
+}
+async function migrarFestasParaFirestore() {
+  const botao = document.getElementById("btnMigrarFestas");
+  const retorno = document.getElementById("retornoMigracaoFestas");
+  if (!confirm("Enviar os 7 produtos padrão para o Firestore? Eles serão criados ou atualizados sem duplicar.")) return;
+  try {
+    if (botao) { botao.disabled = true; botao.textContent = "⏳ Enviando..."; }
+    if (retorno) { retorno.className = "festas-migracao-retorno"; retorno.textContent = "Enviando produtos para o banco..."; }
+    const total = await enviarProdutosBaseParaFirestore();
+    if (retorno) { retorno.className = "festas-migracao-retorno sucesso"; retorno.textContent = `✅ ${total} produtos salvos no Firestore. Agora todos podem ser editados normalmente.`; }
+  } catch (e) {
+    console.error(e);
+    if (retorno) { retorno.className = "festas-migracao-retorno erro"; retorno.textContent = `❌ ${descreverErroFirestore(e)}`; }
+    alert(descreverErroFirestore(e));
+  } finally {
+    if (botao) { botao.disabled = false; botao.textContent = "☁️ Enviar produtos atuais para o Firestore"; }
+  }
+}
+window.abrirModalFesta=abrirModalFesta;window.fecharModalFesta=fecharModalFesta;window.salvarFestaAdmin=salvarFestaAdmin;window.migrarFestasParaFirestore=migrarFestasParaFirestore;

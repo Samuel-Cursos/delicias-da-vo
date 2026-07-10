@@ -1,0 +1,21 @@
+REGRAS NECESSÁRIAS PARA EDITAR SALGADOS DE FESTA
+
+O botão de migração e a edição usam a coleção: salgadosFesta
+
+No Firebase Console, abra Firestore Database > Regras e inclua este bloco DENTRO de:
+match /databases/{database}/documents {
+
+  match /salgadosFesta/{produtoId} {
+    allow read: if true;
+    allow create, update, delete: if request.auth != null
+      && request.auth.token.email == "deliciasdavo54@gmail.com";
+  }
+
+}
+
+IMPORTANTE:
+- Não apague as regras das outras coleções.
+- Apenas acrescente o bloco acima dentro do bloco principal existente.
+- Clique em Publicar.
+- Entre no painel com deliciasdavo54@gmail.com.
+- Depois clique em “Enviar produtos atuais para o Firestore”.
