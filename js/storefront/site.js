@@ -7,7 +7,7 @@ import { lojaConfig, observarConfiguracoesLoja } from "../services/configService
 import { promocoes, observarPromocoes, promocaoAtivaParaProduto } from "../services/promotionService.js";
 import { createProductCard } from "../core/templates.js";
 import { gerarPedidoSite } from "../services/orderService.js";
-import { salgadosFesta, observarSalgadosFesta } from "../services/partyProductService.js";
+import { salgadosFesta, observarSalgadosFesta, calcularPrecoFesta, textoPrecoFesta, normalizarPrecoFesta } from "../services/partyProductService.js";
 import { registrarEncomendaFesta } from "../services/partyOrderService.js";
 
 let categoriaAtual = "todos";
@@ -745,7 +745,7 @@ function renderSalgadosFesta(erro = null) {
         </div>
         <label><span>Quantidade</span><select class="festa-select-quantidade">${opcoesQuantidades}</select></label>
         <small class="festa-regra-quantidade">Acréscimos de ${Number(p.incrementoQuantidade || 50)} em ${Number(p.incrementoQuantidade || 50)} unidades.</small>
-        <div class="festa-preco">${Number(p.preco50 || 0) > 0 ? `<span>A partir de</span><strong>${formatarMoeda(Number(p.preco50))} / 50 un.</strong>` : `<span>Valor</span><strong>Sob consulta</strong>`}</div>
+        <div class="festa-preco"><span>Valor</span><strong>${textoPrecoFesta(p)}</strong>${normalizarPrecoFesta(p).tipoPreco === "unitario" ? `<small>Venda mínima: 50 unidades</small>` : ""}</div>
       </div>
       <button class="btn primary festa-add-btn">＋ Adicionar à encomenda</button>`;
 
@@ -780,8 +780,8 @@ function adicionarFesta(p, sabor, qtd) {
   const id = p.id + "__" + sabor;
   const item = encomendaFesta.find(i => i.id === id);
   const incremento = Math.max(50, Number(p.incrementoQuantidade || 50));
-  if (item) { item.quantidade += qtd; item.preco50 = Number(p.preco50 || item.preco50 || 0); item.emoji = p.emoji || item.emoji || "🥟"; }
-  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, emoji:p.emoji || "🥟", sabor, quantidade:qtd, incremento, preco50:Number(p.preco50 || 0) });
+  if (item) { item.quantidade += qtd; Object.assign(item, normalizarPrecoFesta(p)); item.emoji = p.emoji || item.emoji || "🥟"; }
+  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, emoji:p.emoji || "🥟", sabor, quantidade:qtd, incremento, ...normalizarPrecoFesta(p) });
   salvarLocal("deliciasFestaPedido", encomendaFesta);
   renderResumoFesta();
 }
@@ -802,15 +802,18 @@ function renderResumoFesta() {
     return;
   }
   const total = encomendaFesta.reduce((s, i) => s + Number(i.quantidade || 0), 0);
-  const totalEstimado = encomendaFesta.reduce((s, i) => s + (Number(i.preco50 || 0) * (Number(i.quantidade || 0) / 50)), 0);
-  const possuiPrecoPendente = encomendaFesta.some(i => Number(i.preco50 || 0) <= 0);
+  const totalEstimado = encomendaFesta.reduce((soma, item) => {
+    const produtoAtual = salgadosFesta.find(p => p.id === item.produtoId) || item;
+    return soma + calcularPrecoFesta(produtoAtual, item.quantidade);
+  }, 0);
   box.innerHTML = `<div class="festa-resumo-cabecalho"><div><span>🧺</span><div><b>Sua encomenda</b><small>${encomendaFesta.length} opção(ões) escolhida(s)</small></div></div><strong>${total} unidades</strong></div>` + encomendaFesta.map((i, n) => {
-    const subtotal = Number(i.preco50 || 0) * (Number(i.quantidade || 0) / 50);
+    const produtoAtual = salgadosFesta.find(p => p.id === i.produtoId) || i;
+    const subtotal = calcularPrecoFesta(produtoAtual, i.quantidade);
     return `
     <div class="festa-resumo-item">
       <div class="festa-resumo-identidade"><span class="festa-resumo-icone">${i.emoji || (salgadosFesta.find(p => p.id === i.produtoId)?.emoji) || "🥟"}</span><div><b>${i.nome}</b><span>${i.sabor}${subtotal > 0 ? ` • ${formatarMoeda(subtotal)}` : " • sob consulta"}</span></div></div>
       <div class="festa-resumo-controles"><button aria-label="Diminuir" onclick="alterarFesta(${n},-1)">−</button><strong>${i.quantidade}</strong><button aria-label="Aumentar" onclick="alterarFesta(${n},1)">+</button></div>
-    </div>`}).join("") + `<div class="festa-total-estimado"><span>Total estimado</span><strong>${totalEstimado > 0 ? formatarMoeda(totalEstimado) : "Sob consulta"}</strong>${possuiPrecoPendente ? "<small>Alguns itens ainda precisam de confirmação de valor.</small>" : "<small>Valor sujeito à confirmação da loja.</small>"}</div>`;
+    </div>`}).join("") + `<div class="festa-total-estimado"><span>Total estimado</span><strong>${totalEstimado > 0 ? formatarMoeda(totalEstimado) : "Sob consulta"}</strong><small>Valor sujeito à confirmação da loja.</small></div>`;
 }
 let ultimoComprovanteFesta = null;
 
@@ -823,11 +826,14 @@ async function enviarEncomendaFesta(){
   const data=document.getElementById("dataFesta").value;
   const obs=limparTexto(document.getElementById("obsFesta").value);
   const totalUnidades=encomendaFesta.reduce((s,i)=>s+Number(i.quantidade||0),0);
-  const totalEstimado=encomendaFesta.reduce((s,i)=>s+(Number(i.preco50||0)*(Number(i.quantidade||0)/50)),0);
+  const totalEstimado=encomendaFesta.reduce((soma,item)=>{
+    const produtoAtual=salgadosFesta.find(p=>p.id===item.produtoId)||item;
+    return soma+calcularPrecoFesta(produtoAtual,item.quantidade);
+  },0);
   const itensPedido=encomendaFesta.map(i=>({
     produtoId:i.produtoId, nome:i.nome, emoji:i.emoji||"🥟", sabor:i.sabor,
-    quantidade:Number(i.quantidade||0), preco50:Number(i.preco50||0),
-    subtotal:Number(i.preco50||0)*(Number(i.quantidade||0)/50)
+    quantidade:Number(i.quantidade||0), ...normalizarPrecoFesta(salgadosFesta.find(p=>p.id===i.produtoId)||i),
+    subtotal:calcularPrecoFesta(salgadosFesta.find(p=>p.id===i.produtoId)||i, Number(i.quantidade||0))
   }));
 
   const botao=document.querySelector('.festa-pedido-box .btn-whatsapp');
@@ -841,8 +847,8 @@ async function enviarEncomendaFesta(){
       totalUnidades,
       totalEstimado
     });
-    const linhas=itensPedido.map(i=>`• ${i.quantidade}x ${i.nome} — ${i.sabor}${i.subtotal>0?` (${formatarMoeda(i.subtotal)})`:" (valor sob consulta)"}`).join("\n");
-    const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nPedido: ${pedido.numero}\nCliente: ${nome}\nWhatsApp: ${telefone}\n${data?`Data da festa: ${data}\n`:""}\n${linhas}\n\nTotal: ${totalEstimado>0?formatarMoeda(totalEstimado):"sob consulta"}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`;
+    const linhas=itensPedido.map(i=>`• ${i.quantidade}x ${i.nome} — ${i.sabor} (${formatarMoeda(i.subtotal)})`).join("\n");
+    const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nPedido: ${pedido.numero}\nCliente: ${nome}\nWhatsApp: ${telefone}\n${data?`Data da festa: ${data}\n`:""}\n${linhas}\n\nTotal: ${formatarMoeda(totalEstimado)}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`;
     ultimoComprovanteFesta={pedido,msg};
     mostrarComprovanteFesta(pedido);
     window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`,"_blank");
@@ -861,7 +867,7 @@ function mostrarComprovanteFesta(pedido){
   <div class="comprovante-linha"><span>Cliente</span><strong>${pedido.cliente?.nome||""}</strong></div>
   <div class="comprovante-linha"><span>Data da festa</span><strong>${pedido.dataFesta||"A combinar"}</strong></div>
   <div class="comprovante-itens">${itens}</div>
-  <div class="comprovante-total"><span>Total estimado</span><strong>${Number(pedido.totalEstimado||0)>0?formatarMoeda(pedido.totalEstimado):"Sob consulta"}</strong></div>
+  <div class="comprovante-total"><span>Total estimado</span><strong>${formatarMoeda(pedido.totalEstimado||0)}</strong></div>
   <small>O pedido ainda depende da confirmação da Delícias da Vó.</small>`;
   modal?.classList.add("aberto");
 }

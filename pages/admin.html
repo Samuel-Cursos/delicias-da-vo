@@ -509,7 +509,32 @@
         <label>Quantidade inicial<input id="festaQuantidadeInicial" type="number" min="50" step="50" value="50"><small>Primeira opção mostrada ao cliente</small></label>
         <label>Aumentar de quanto em quanto<input id="festaIncrementoQuantidade" type="number" min="50" step="50" value="50"><small>Ex.: 50 gera 50, 100, 150...</small></label>
         <label>Quantidade máxima<input id="festaQuantidadeMaxima" type="number" min="50" step="50" value="500"><small>Última opção exibida no seletor</small></label>
-        <label>Preço para 50 unidades (R$)<input id="festaPreco50" type="number" min="0" step="0.01" value="0"><small>Use 0 para mostrar “valor sob consulta”</small></label>
+        <div class="full festa-preco-editor">
+          <div class="festa-preco-editor-titulo">
+            <span>💰</span>
+            <div>
+              <b>Como este produto é cobrado?</b>
+              <small>Use “por cento” nos fritos e assados. Para empadinha mini, use “por unidade”; a venda continua começando em 50 unidades.</small>
+            </div>
+          </div>
+          <div class="festa-preco-editor-grid">
+            <label>Forma de cobrança
+              <select id="festaTipoPreco" onchange="atualizarCamposPrecoFesta()">
+                <option value="cento">Por cento (100 unidades)</option>
+                <option value="unitario">Por unidade</option>
+              </select>
+            </label>
+            <label id="campoFestaPrecoCento">Valor de 100 unidades (R$)
+              <input id="festaPrecoCento" type="number" min="0" step="0.01" value="75" oninput="atualizarPreviaPrecoFesta()">
+              <small>Fritos: R$ 75,00 • Assados: R$ 80,00.</small>
+            </label>
+            <label id="campoFestaPrecoUnitario" hidden>Valor de cada unidade (R$)
+              <input id="festaPrecoUnitario" type="number" min="0" step="0.01" value="1.50" oninput="atualizarPreviaPrecoFesta()">
+              <small>Empadinha mini: R$ 1,50 cada, com venda mínima de 50 unidades.</small>
+            </label>
+          </div>
+          <div id="festaPreviaPreco" class="festa-preco-previa" aria-live="polite"></div>
+        </div>
         <label class="check festa-check"><input id="festaAtivo" type="checkbox" checked><span><b>Produto ativo</b><small>Aparece na área de salgados para festas</small></span></label>
         <label class="full">Descrição<textarea id="festaDescricao" rows="3" placeholder="Descreva o produto de forma atrativa."></textarea></label>
         <label class="full">Sabores <small>Separe cada sabor por vírgula</small><input id="festaSabores" placeholder="Ex: Carne, Frango, Presunto e queijo"></label>

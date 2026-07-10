@@ -399,3 +399,17 @@ button{cursor:pointer;border:0}
 .agenda-vazia strong{font-size:1rem}.agenda-vazia span{font-size:.85rem;color:#817168}
 @media(max-width:900px){.agenda-info-grid{grid-template-columns:repeat(2,1fr)}.agenda-resumo{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.agenda-toolbar{grid-template-columns:1fr}.agenda-info-grid{grid-template-columns:1fr}.agenda-card-topo{flex-direction:column}.agenda-acoes{flex-direction:column}.agenda-acoes>*{width:100%}}
+
+#campoFestaPrecoCento[hidden],#campoFestaPrecoUnitario[hidden]{display:none!important}
+
+.festa-preco-editor{padding:18px;border-radius:18px;background:linear-gradient(135deg,#fffaf2,#fff3dc);border:1px solid #ead7bd}
+.festa-preco-editor-titulo{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}
+.festa-preco-editor-titulo>span{font-size:1.6rem}
+.festa-preco-editor-titulo b{display:block;color:#633820}
+.festa-preco-editor-titulo small{display:block;margin-top:4px;color:#806e62}
+.festa-preco-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.festa-preco-previa{margin-top:14px;padding:14px;border-radius:14px;background:#fff;border:1px solid #eadfd4;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.festa-preco-previa strong{grid-column:1/-1;color:#673a24}
+.festa-preco-previa span{padding:10px;border-radius:10px;background:#faf6f1;color:#77655a;font-size:.78rem}
+.festa-preco-previa b{display:block;margin-top:3px;color:#7b3f24;font-size:.95rem}
+@media(max-width:700px){.festa-preco-editor-grid,.festa-preco-previa{grid-template-columns:1fr}}

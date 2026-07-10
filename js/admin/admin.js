@@ -10,7 +10,7 @@ import { iniciarCategoriasAdmin, abrirModalCategoria, fecharModalCategoria, salv
 import { createProductAdminRow, createPromoAdminCard } from "../core/templates.js";
 import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "../core/firebase.js";
 import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
-import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore } from "../services/partyProductService.js";
+import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore, normalizarPrecoFesta, textoPrecoFesta } from "../services/partyProductService.js";
 import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada } from "../services/partyOrderService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
@@ -1260,6 +1260,17 @@ function abrirModalFesta(id = null) {
   document.getElementById("festaQuantidadeInicial").value = Number(festaEditando?.quantidadeInicial ?? 50);
   document.getElementById("festaIncrementoQuantidade").value = Number(festaEditando?.incrementoQuantidade ?? 50);
   document.getElementById("festaQuantidadeMaxima").value = Number(festaEditando?.quantidadeMaxima ?? 500);
+
+  const regraPreco = normalizarPrecoFesta(festaEditando || {
+    nome: document.getElementById("festaNome").value,
+    categoria: document.getElementById("festaCategoria").value
+  });
+  const ehEmpadinha = String(festaEditando?.nome || "").toLowerCase().includes("empad");
+  document.getElementById("festaTipoPreco").value = ehEmpadinha ? "unitario" : regraPreco.tipoPreco;
+  document.getElementById("festaPrecoCento").value = Number(regraPreco.precoCento || (festaEditando?.categoria === "assados" ? 80 : 75));
+  document.getElementById("festaPrecoUnitario").value = Number(regraPreco.precoUnitario || 1.50);
+  atualizarCamposPrecoFesta();
+
   document.getElementById("festaDescricao").value = festaEditando?.descricao || "";
   document.getElementById("festaSabores").value = (festaEditando?.sabores || []).join(", ");
   document.getElementById("festaAtivo").checked = festaEditando?.ativo !== false;
@@ -1277,9 +1288,16 @@ async function salvarFestaAdmin() {
   const incrementoQuantidade = Number(document.getElementById("festaIncrementoQuantidade").value || 50);
   const quantidadeMaxima = Number(document.getElementById("festaQuantidadeMaxima").value || 500);
 
-  if (quantidadeInicial < 50 || quantidadeInicial % 50 !== 0) return alert("A quantidade inicial precisa ser múltipla de 50.");
+  if (quantidadeInicial < 50 || quantidadeInicial % 50 !== 0) return alert("A quantidade inicial deve ser no mínimo 50 e sempre múltipla de 50.");
   if (incrementoQuantidade < 50 || incrementoQuantidade % 50 !== 0) return alert("O aumento precisa ser de 50 em 50 ou outro múltiplo de 50.");
   if (quantidadeMaxima < quantidadeInicial) return alert("A quantidade máxima não pode ser menor que a quantidade inicial.");
+
+  const tipoPreco = document.getElementById("festaTipoPreco").value;
+  const precoCento = Number(document.getElementById("festaPrecoCento").value || 0);
+  const precoUnitario = Number(document.getElementById("festaPrecoUnitario").value || 0);
+
+  if (tipoPreco === "cento" && precoCento <= 0) return alert("Digite o valor de 100 unidades.");
+  if (tipoPreco === "unitario" && precoUnitario <= 0) return alert("Digite o valor de cada unidade.");
 
   const item = {
     id: festaEditando?.id || gerarId("festa-" + nome),
@@ -1290,7 +1308,9 @@ async function salvarFestaAdmin() {
     quantidadeInicial,
     incrementoQuantidade,
     quantidadeMaxima,
-    preco50: Number(document.getElementById("festaPreco50").value || 0),
+    tipoPreco,
+    precoCento: tipoPreco === "cento" ? precoCento : 0,
+    precoUnitario: tipoPreco === "unitario" ? precoUnitario : 0,
     descricao: limparTexto(document.getElementById("festaDescricao").value),
     sabores: document.getElementById("festaSabores").value.split(",").map(limparTexto).filter(Boolean),
     ativo: document.getElementById("festaAtivo").checked
@@ -1406,3 +1426,40 @@ async function visualizarEncomenda(id) {
 window.renderAgendaEncomendas=renderAgendaEncomendas;
 window.alterarStatusEncomenda=alterarStatusEncomenda;
 window.visualizarEncomenda=visualizarEncomenda;
+
+
+function atualizarCamposPrecoFesta() {
+  const tipo = document.getElementById("festaTipoPreco")?.value || "cento";
+  const campoCento = document.getElementById("campoFestaPrecoCento");
+  const campoUnitario = document.getElementById("campoFestaPrecoUnitario");
+  if (campoCento) campoCento.hidden = tipo !== "cento";
+  if (campoUnitario) campoUnitario.hidden = tipo !== "unitario";
+  atualizarPreviaPrecoFesta();
+}
+
+function atualizarPreviaPrecoFesta() {
+  const previa = document.getElementById("festaPreviaPreco");
+  if (!previa) return;
+  const tipo = document.getElementById("festaTipoPreco")?.value || "cento";
+  const moeda = valor => Number(valor || 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+
+  if (tipo === "unitario") {
+    const unitario = Number(document.getElementById("festaPrecoUnitario")?.value || 0);
+    previa.innerHTML = `
+      <strong>Prévia por unidade — venda mínima de 50</strong>
+      <span>50 unidades<b>${moeda(unitario * 50)}</b></span>
+      <span>100 unidades<b>${moeda(unitario * 100)}</b></span>
+      <span>150 unidades<b>${moeda(unitario * 150)}</b></span>
+      <span>200 unidades<b>${moeda(unitario * 200)}</b></span>`;
+  } else {
+    const cento = Number(document.getElementById("festaPrecoCento")?.value || 0);
+    previa.innerHTML = `
+      <strong>Prévia por cento</strong>
+      <span>50 unidades<b>${moeda(cento / 2)}</b></span>
+      <span>100 unidades<b>${moeda(cento)}</b></span>
+      <span>150 unidades<b>${moeda(cento * 1.5)}</b></span>
+      <span>200 unidades<b>${moeda(cento * 2)}</b></span>`;
+  }
+}
+window.atualizarCamposPrecoFesta = atualizarCamposPrecoFesta;
+window.atualizarPreviaPrecoFesta = atualizarPreviaPrecoFesta;

@@ -960,3 +960,6 @@ nav button {
 .comprovante-conteudo>small{display:block;margin-top:10px;color:#7c6b61}
 .comprovante-acoes{display:grid;grid-template-columns:1fr 1fr}
 @media(max-width:560px){.comprovante-acoes{grid-template-columns:1fr}.festa-total-estimado{grid-template-columns:1fr}.festa-total-estimado strong{margin-top:4px}}
+
+.festa-preco{flex-wrap:wrap}
+.festa-preco small{width:100%;font-size:.74rem;color:#80675a}
