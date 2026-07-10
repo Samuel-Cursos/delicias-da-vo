@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix-sabores-ui";
+const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix-sabores-ui-emoji-festa-emoji-carrinho";
 
 const ARQUIVOS_CACHE = [
   "/",

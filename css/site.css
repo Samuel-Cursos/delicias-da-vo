@@ -907,3 +907,35 @@ nav button {
   .festa-opcoes-sabor{grid-template-columns:1fr}
   .festa-sabor-opcao{min-height:52px;border-radius:15px;font-size:.95rem}
 }
+
+/* Emoji do produto no carrinho normal */
+.item-cart-cabecalho{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:4px;
+}
+.item-cart-emoji{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:linear-gradient(135deg,#fff4d7,#ffe7ad);
+  border:1px solid rgba(151,87,38,.13);
+  box-shadow:0 4px 10px rgba(92,49,27,.08);
+  font-size:1.35rem;
+}
+.item-cart-cabecalho strong{
+  margin:0;
+}
+@media (max-width:560px){
+  .item-cart-emoji{
+    width:42px;
+    height:42px;
+    flex-basis:42px;
+    border-radius:13px;
+    font-size:1.45rem;
+  }
+}

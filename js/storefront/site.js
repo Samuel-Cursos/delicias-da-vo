@@ -362,7 +362,7 @@ function adicionarCarrinhoImpl(id) {
   const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
 
   if (item) item.quantidade++;
-  else carrinho.push({ chave, id: produto.id, nome: produto.nome, preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0), observacao: "" });
+  else carrinho.push({ chave, id: produto.id, nome: produto.nome, emoji: produto.emoji || "🛒", preco: precoFinal, quantidade: 1, estoqueAtual: Number(produto.estoque || 0), observacao: "" });
 
   atualizarCarrinho();
   abrirCarrinhoImpl();
@@ -385,9 +385,20 @@ function atualizarCarrinho() {
 
   carrinho.forEach(item => {
     const wrapper = document.createElement('div'); wrapper.className = 'item-cart';
+    const cabecalho = document.createElement('div');
+    cabecalho.className = 'item-cart-cabecalho';
+
+    const icone = document.createElement('span');
+    icone.className = 'item-cart-emoji';
+    const produtoAtual = produtos.find(produto => produto.id === item.id);
+    icone.textContent = item.emoji || produtoAtual?.emoji || '🛒';
+
     const strong = document.createElement('strong');
     strong.textContent = `${item.quantidade}x ${item.nome}`;
-    wrapper.appendChild(strong);
+
+    cabecalho.appendChild(icone);
+    cabecalho.appendChild(strong);
+    wrapper.appendChild(cabecalho);
     if (item.sabor) {
       const saborSpan = document.createElement('span');
       saborSpan.className = 'item-sabor';
@@ -538,7 +549,7 @@ function confirmarSabor(produtoId, escolha) {
   const chave = chaveCarrinho(produto.id, variacaoId, sabor);
   const item = carrinho.find(i => (i.chave || chaveCarrinho(i.id, i.variacaoId, i.sabor)) === chave);
   if (item) item.quantidade++;
-  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, preco: precoFinal, quantidade: 1, sabor, ingredientes: ingredientesOpcao, estoqueAtual, observacao: "" });
+  else carrinho.push({ chave, id: produto.id, variacaoId, nome: produto.nome, emoji: produto.emoji || "🛒", preco: precoFinal, quantidade: 1, sabor, ingredientes: ingredientesOpcao, estoqueAtual, observacao: "" });
 
   atualizarCarrinho();
   fecharModalSabores();
@@ -768,7 +779,7 @@ function adicionarFesta(p, sabor, qtd) {
   const item = encomendaFesta.find(i => i.id === id);
   const incremento = Math.max(50, Number(p.incrementoQuantidade || 50));
   if (item) item.quantidade += qtd;
-  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, sabor, quantidade:qtd, incremento });
+  else encomendaFesta.push({ id, produtoId:p.id, nome:p.nome, emoji:p.emoji || "🥟", sabor, quantidade:qtd, incremento });
   salvarLocal("deliciasFestaPedido", encomendaFesta);
   renderResumoFesta();
 }
@@ -791,7 +802,7 @@ function renderResumoFesta() {
   const total = encomendaFesta.reduce((s, i) => s + Number(i.quantidade || 0), 0);
   box.innerHTML = `<div class="festa-resumo-cabecalho"><div><span>🧺</span><div><b>Sua encomenda</b><small>${encomendaFesta.length} opção(ões) escolhida(s)</small></div></div><strong>${total} unidades</strong></div>` + encomendaFesta.map((i, n) => `
     <div class="festa-resumo-item">
-      <div class="festa-resumo-identidade"><span class="festa-resumo-icone">🥟</span><div><b>${i.nome}</b><span>${i.sabor}</span></div></div>
+      <div class="festa-resumo-identidade"><span class="festa-resumo-icone">${i.emoji || (salgadosFesta.find(p => p.id === i.produtoId)?.emoji) || "🥟"}</span><div><b>${i.nome}</b><span>${i.sabor}</span></div></div>
       <div class="festa-resumo-controles"><button aria-label="Diminuir" onclick="alterarFesta(${n},-1)">−</button><strong>${i.quantidade}</strong><button aria-label="Aumentar" onclick="alterarFesta(${n},1)">+</button></div>
     </div>`).join("");
 }
