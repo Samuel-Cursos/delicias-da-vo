@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix";
+const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix-sabores-ui";
 
 const ARQUIVOS_CACHE = [
   "/",

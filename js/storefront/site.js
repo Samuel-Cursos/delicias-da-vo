@@ -725,14 +725,31 @@ function renderSalgadosFesta(erro = null) {
       <p class="festa-card-descricao">${p.descricao || "Feito com carinho para sua festa."}</p>
       <div class="festa-configurador">
         <div class="festa-configurador-title"><span>✨</span><div><b>Monte sua encomenda</b><small>Escolha o sabor e a quantidade</small></div></div>
-        <label><span>Sabor</span><select class="festa-select-sabor">${opcoesSabores}</select></label>
+        <div class="festa-campo-sabor">
+          <span class="festa-campo-label">Sabor</span>
+          <div class="festa-opcoes-sabor" role="radiogroup" aria-label="Escolha o sabor">
+            ${sabores.map((x, i) => `<button type="button" class="festa-sabor-opcao ${i === 0 ? "selecionado" : ""}" data-sabor="${x.replace(/"/g, '&quot;')}" role="radio" aria-checked="${i === 0 ? "true" : "false"}"><span class="festa-sabor-check">✓</span><span>${x}</span></button>`).join("")}
+          </div>
+        </div>
         <label><span>Quantidade</span><select class="festa-select-quantidade">${opcoesQuantidades}</select></label>
         <small class="festa-regra-quantidade">Acréscimos de ${Number(p.incrementoQuantidade || 50)} em ${Number(p.incrementoQuantidade || 50)} unidades.</small>
       </div>
       <button class="btn primary festa-add-btn">＋ Adicionar à encomenda</button>`;
 
-    card.querySelector("button").onclick = () => {
-      const sabor = card.querySelector(".festa-select-sabor").value;
+    card.querySelectorAll(".festa-sabor-opcao").forEach(botao => {
+      botao.addEventListener("click", () => {
+        card.querySelectorAll(".festa-sabor-opcao").forEach(opcao => {
+          opcao.classList.remove("selecionado");
+          opcao.setAttribute("aria-checked", "false");
+        });
+        botao.classList.add("selecionado");
+        botao.setAttribute("aria-checked", "true");
+      });
+    });
+
+    card.querySelector(".festa-add-btn").onclick = () => {
+      const selecionado = card.querySelector(".festa-sabor-opcao.selecionado");
+      const sabor = selecionado ? selecionado.dataset.sabor : sabores[0];
       const quantidade = Number(card.querySelector(".festa-select-quantidade").value);
       adicionarFesta(p, sabor, quantidade);
     };
