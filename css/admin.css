@@ -413,3 +413,18 @@ button{cursor:pointer;border:0}
 .festa-preco-previa span{padding:10px;border-radius:10px;background:#faf6f1;color:#77655a;font-size:.78rem}
 .festa-preco-previa b{display:block;margin-top:3px;color:#7b3f24;font-size:.95rem}
 @media(max-width:700px){.festa-preco-editor-grid,.festa-preco-previa{grid-template-columns:1fr}}
+
+.agenda-info-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.agenda-btn-excluir{
+  min-height:42px;
+  padding:0 13px;
+  border:1px solid #e9b9b4;
+  border-radius:11px;
+  background:#fff1f0;
+  color:#a2382f;
+  font-weight:800;
+  cursor:pointer;
+}
+.agenda-btn-excluir:hover{background:#ffe4e1}
+@media(max-width:900px){.agenda-info-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.agenda-info-grid{grid-template-columns:1fr}.agenda-btn-excluir{width:100%}}

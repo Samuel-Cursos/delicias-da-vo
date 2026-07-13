@@ -11,7 +11,7 @@ import { createProductAdminRow, createPromoAdminCard } from "../core/templates.j
 import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "../core/firebase.js";
 import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore, normalizarPrecoFesta, textoPrecoFesta } from "../services/partyProductService.js";
-import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada } from "../services/partyOrderService.js";
+import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada, excluirEncomendaFesta } from "../services/partyOrderService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -1401,6 +1401,8 @@ function renderAgendaEncomendas(erro = null) {
       <div class="agenda-info-grid">
         <div><span>📅 Data da festa</span><strong>${dataEncomenda(p.dataFesta)}</strong></div>
         <div><span>📱 WhatsApp</span><strong>${p.cliente?.telefone || "Não informado"}</strong></div>
+        <div><span>🚚 Recebimento</span><strong>${p.tipoEntrega || "Retirada na loja"}</strong></div>
+        <div><span>📍 Endereço</span><strong>${p.tipoEntrega === "Entrega" ? (p.endereco || "Não informado") : "Retirada na loja"}</strong></div>
         <div><span>🧺 Total</span><strong>${p.totalUnidades || 0} unidades</strong></div>
         <div><span>💰 Estimativa</span><strong>${total > 0 ? formatarMoeda(total) : "Sob consulta"}</strong></div>
       </div>
@@ -1411,6 +1413,7 @@ function renderAgendaEncomendas(erro = null) {
           ${Object.entries(STATUS_ENCOMENDA).map(([valor,d])=>`<option value="${valor}" ${p.status===valor?"selected":""}>${d[0]}</option>`).join("")}
         </select>
         ${!p.visualizado ? `<button class="secondary-btn" onclick="visualizarEncomenda('${p.id}')">✓ Marcar como vista</button>` : ""}
+        <button class="agenda-btn-excluir" onclick="apagarEncomenda('${p.id}', '${String(p.numero || p.id).replaceAll("'", "&#39;")}')">🗑️ Excluir</button>
       </div>
     </article>`;
   }).join("");
@@ -1423,9 +1426,20 @@ async function visualizarEncomenda(id) {
   try { await marcarEncomendaVisualizada(id); }
   catch(e) { console.error(e); alert("Não foi possível marcar a encomenda como vista."); }
 }
+async function apagarEncomenda(id, numero) {
+  const confirmar = confirm(`Excluir definitivamente a encomenda ${numero}?\n\nUse esta opção para pedidos de teste, cancelados ou lançados por engano.`);
+  if (!confirmar) return;
+  try {
+    await excluirEncomendaFesta(id);
+  } catch(e) {
+    console.error(e);
+    alert("Não foi possível excluir a encomenda. Confira a conexão e as permissões do Firestore.");
+  }
+}
 window.renderAgendaEncomendas=renderAgendaEncomendas;
 window.alterarStatusEncomenda=alterarStatusEncomenda;
 window.visualizarEncomenda=visualizarEncomenda;
+window.apagarEncomenda=apagarEncomenda;
 
 
 function atualizarCamposPrecoFesta() {

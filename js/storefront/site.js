@@ -660,11 +660,6 @@ function montarMensagemPedidoWhatsApp(pedido) {
 👤 CLIENTE
 ${pedido.cliente.nome}
 
-📱 WhatsApp
-${pedido.cliente.telefone || "Não informado"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
 🛒 PEDIDO
 
 ${linhasItens}
@@ -755,6 +750,34 @@ function confirmarPedidoNoWhatsApp() {
 window.fecharRevisaoPedido = fecharRevisaoPedido;
 window.confirmarPedidoNoWhatsApp = confirmarPedidoNoWhatsApp;
 
+
+
+function selecionarPagamento(input) {
+  const valor = input?.value || "Pix";
+  const campo = document.getElementById("pagamento");
+  if (campo) campo.value = valor;
+  document.querySelectorAll(".pagamento-card").forEach(card => {
+    card.classList.toggle("ativo", card.contains(input));
+  });
+}
+window.selecionarPagamento = selecionarPagamento;
+
+function atualizarEnderecoPedidoNormal() {
+  const tipo = document.getElementById("tipoPedido")?.value || "Retirada na loja";
+  const campos = document.getElementById("camposEnderecoPedidoNormal");
+  if (campos) campos.hidden = tipo !== "Entrega";
+}
+window.atualizarEnderecoPedidoNormal = atualizarEnderecoPedidoNormal;
+
+function montarEndereco({ rua, numero, bairro, complemento }) {
+  const partes = [
+    rua && numero ? `${rua}, ${numero}` : rua || numero,
+    bairro,
+    complemento
+  ].filter(Boolean);
+  return partes.join(" • ");
+}
+
 async function finalizarPedidoImpl() {
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
@@ -768,9 +791,12 @@ async function finalizarPedidoImpl() {
   }
 
   const nome = limparTexto(document.getElementById("nomeCliente").value);
-  const telefone = limparTexto(document.getElementById("telefoneCliente").value);
   const tipo = document.getElementById("tipoPedido").value;
-  const endereco = limparTexto(document.getElementById("enderecoCliente").value);
+  const rua = limparTexto(document.getElementById("ruaCliente")?.value || "");
+  const numeroEndereco = limparTexto(document.getElementById("numeroCliente")?.value || "");
+  const bairro = limparTexto(document.getElementById("bairroCliente")?.value || "");
+  const complemento = limparTexto(document.getElementById("complementoCliente")?.value || "");
+  const endereco = montarEndereco({ rua, numero: numeroEndereco, bairro, complemento });
   const pagamento = document.getElementById("pagamento").value;
 
   if (!nome) {
@@ -778,8 +804,8 @@ async function finalizarPedidoImpl() {
     return;
   }
 
-  if (tipo === "Entrega" && !endereco) {
-    alert("Digite o endereço.");
+  if (tipo === "Entrega" && (!rua || !numeroEndereco || !bairro)) {
+    alert("Preencha a rua, o número e o bairro para entrega.");
     return;
   }
 
@@ -807,10 +833,16 @@ async function finalizarPedidoImpl() {
       loja: lojaConfig.nomeLoja || "Delícias da Vó",
       cliente: {
         nome,
-        telefone
+        telefone: ""
       },
       tipo,
       endereco: tipo === "Entrega" ? endereco : "",
+      enderecoDetalhado: tipo === "Entrega" ? {
+        rua,
+        numero: numeroEndereco,
+        bairro,
+        complemento
+      } : null,
       pagamento,
       itens,
       total
@@ -960,6 +992,14 @@ function renderResumoFesta() {
 }
 let ultimoComprovanteFesta = null;
 
+
+function atualizarEnderecoFesta() {
+  const tipo = document.getElementById("tipoEntregaFesta")?.value || "Retirada na loja";
+  const campo = document.getElementById("campoEnderecoFesta");
+  if (campo) campo.hidden = tipo !== "Entrega";
+}
+window.atualizarEnderecoFesta = atualizarEnderecoFesta;
+
 async function enviarEncomendaFesta(){
   if(!encomendaFesta.length) return alert("Adicione pelo menos um salgado.");
   const nome=limparTexto(document.getElementById("nomeFestaCliente").value);
@@ -967,7 +1007,16 @@ async function enviarEncomendaFesta(){
   if(!nome) return alert("Digite seu nome.");
   if(!telefone) return alert("Digite seu WhatsApp.");
   const data=document.getElementById("dataFesta").value;
+  const tipoEntrega=document.getElementById("tipoEntregaFesta")?.value || "Retirada na loja";
+  const ruaFesta=limparTexto(document.getElementById("ruaFesta")?.value || "");
+  const numeroFesta=limparTexto(document.getElementById("numeroFesta")?.value || "");
+  const bairroFesta=limparTexto(document.getElementById("bairroFesta")?.value || "");
+  const complementoFesta=limparTexto(document.getElementById("complementoFesta")?.value || "");
+  const endereco=montarEndereco({ rua:ruaFesta, numero:numeroFesta, bairro:bairroFesta, complemento:complementoFesta });
   const obs=limparTexto(document.getElementById("obsFesta").value);
+  if(tipoEntrega==="Entrega" && (!ruaFesta || !numeroFesta || !bairroFesta)) {
+    return alert("Preencha a rua, o número e o bairro para entrega.");
+  }
   const totalUnidades=encomendaFesta.reduce((s,i)=>s+Number(i.quantidade||0),0);
   const totalEstimado=encomendaFesta.reduce((soma,item)=>{
     const produtoAtual=salgadosFesta.find(p=>p.id===item.produtoId)||item;
@@ -985,6 +1034,14 @@ async function enviarEncomendaFesta(){
     const pedido=await registrarEncomendaFesta({
       cliente:{nome,telefone},
       dataFesta:data||"",
+      tipoEntrega,
+      endereco: tipoEntrega==="Entrega" ? endereco : "",
+      enderecoDetalhado: tipoEntrega==="Entrega" ? {
+        rua:ruaFesta,
+        numero:numeroFesta,
+        bairro:bairroFesta,
+        complemento:complementoFesta
+      } : null,
       observacoes:obs,
       itens:itensPedido,
       totalUnidades,
@@ -1007,7 +1064,10 @@ function mostrarComprovanteFesta(pedido){
   const itens=(pedido.itens||[]).map(i=>`<div><span>${i.emoji||"🥟"} ${i.nome} — ${i.sabor}</span><strong>${i.quantidade}</strong></div>`).join("");
   box.innerHTML=`<div class="comprovante-numero"><span>Número do pedido</span><strong>${pedido.numero}</strong></div>
   <div class="comprovante-linha"><span>Cliente</span><strong>${pedido.cliente?.nome||""}</strong></div>
+  <div class="comprovante-linha"><span>WhatsApp</span><strong>${pedido.cliente?.telefone||"Não informado"}</strong></div>
   <div class="comprovante-linha"><span>Data da festa</span><strong>${pedido.dataFesta||"A combinar"}</strong></div>
+  <div class="comprovante-linha"><span>Recebimento</span><strong>${pedido.tipoEntrega||"Retirada na loja"}</strong></div>
+  ${pedido.tipoEntrega==="Entrega" ? `<div class="comprovante-linha"><span>Endereço</span><strong>${pedido.endereco||"Não informado"}</strong></div>` : ""}
   <div class="comprovante-itens">${itens}</div>
   <div class="comprovante-total"><span>Total estimado</span><strong>${formatarMoeda(pedido.totalEstimado||0)}</strong></div>
   <small>O pedido ainda depende da confirmação da Delícias da Vó.</small>`;

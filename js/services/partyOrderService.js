@@ -1,5 +1,5 @@
 
-import { db, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, runTransaction } from "../core/firebase.js";
+import { db, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, runTransaction } from "../core/firebase.js";
 
 export let encomendasFesta = [];
 
@@ -63,4 +63,9 @@ export async function marcarEncomendaVisualizada(id) {
     visualizado: true,
     visualizadoEm: serverTimestamp()
   });
+}
+
+
+export async function excluirEncomendaFesta(id) {
+  await deleteDoc(doc(db, "encomendasFesta", id));
 }

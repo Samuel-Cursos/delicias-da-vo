@@ -1053,3 +1053,61 @@ nav button {
 .revisao-acoes{display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-top:16px}
 .revisao-acoes button{min-height:49px}
 @media(max-width:600px){.revisao-pedido-box{padding:23px 16px}.revisao-detalhes,.revisao-acoes{grid-template-columns:1fr}.revisao-pedido-topo{align-items:flex-start}.revisao-pedido-topo h2{font-size:1.2rem}}
+
+.festa-pedido-box label select,
+.festa-pedido-box label input,
+.festa-pedido-box label textarea{width:100%}
+#campoEnderecoFesta[hidden]{display:none!important}
+
+/* Endereço separado para pedidos e encomendas */
+.endereco-form-grid{
+  display:grid;
+  grid-template-columns:minmax(0,2fr) minmax(110px,.7fr);
+  gap:10px;
+  width:100%;
+}
+.endereco-form-grid[hidden]{display:none!important}
+.endereco-rua{grid-column:1}
+.endereco-numero{grid-column:2}
+.endereco-bairro,
+.endereco-complemento{grid-column:1/-1}
+.formulario .endereco-form-grid input{width:100%}
+.festa-endereco-grid{margin-top:2px}
+.festa-endereco-grid label{margin:0}
+@media(max-width:520px){
+  .endereco-form-grid{grid-template-columns:minmax(0,1fr) 96px}
+  .endereco-bairro,.endereco-complemento{grid-column:1/-1}
+}
+
+/* Forma de pagamento em cards */
+.pagamento-escolha{display:grid;gap:9px}
+.pagamento-titulo{font-size:.82rem;font-weight:900;color:#674437}
+.pagamento-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pagamento-card{
+  position:relative;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:12px 10px;
+  border:1px solid #eadbd0;
+  border-radius:15px;
+  background:#fffdfa;
+  cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.pagamento-card:hover{transform:translateY(-1px);border-color:#d9b79f}
+.pagamento-card input{position:absolute;opacity:0;pointer-events:none}
+.pagamento-emoji{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:11px;background:#f8eee5;font-size:1.15rem}
+.pagamento-card>span:nth-of-type(2){min-width:0;text-align:left}
+.pagamento-card strong{display:block;color:#5f392a;font-size:.88rem}
+.pagamento-card small{display:block;margin-top:2px;color:#8b776c;font-size:.68rem;line-height:1.2}
+.pagamento-card i{position:absolute;top:7px;right:8px;width:18px;height:18px;display:none;place-items:center;border-radius:50%;background:#6f9a52;color:#fff;font-size:.68rem;font-style:normal}
+.pagamento-card.ativo{border-color:#b86c43;background:#fff5e9;box-shadow:0 6px 16px rgba(112,62,39,.10)}
+.pagamento-card.ativo .pagamento-emoji{background:#ffe4c8}
+.pagamento-card.ativo i{display:grid}
+@media(max-width:650px){
+  .pagamento-cards{grid-template-columns:1fr}
+  .pagamento-card{padding:11px 12px}
+  .pagamento-card small{font-size:.72rem}
+}
