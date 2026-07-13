@@ -963,3 +963,68 @@ nav button {
 
 .festa-preco{flex-wrap:wrap}
 .festa-preco small{width:100%;font-size:.74rem;color:#80675a}
+
+/* Aviso exibido somente ao tentar finalizar pedido com a loja fechada */
+.aviso-fechado-modal.aberto{display:flex}
+.aviso-fechado-box{
+  width:min(92vw,480px);
+  text-align:center;
+  padding:30px 26px 24px;
+  border-radius:24px;
+  background:linear-gradient(180deg,#fffdfa,#fff8ef);
+  border:1px solid rgba(126,65,39,.12);
+  box-shadow:0 24px 70px rgba(64,34,23,.22);
+}
+.aviso-fechado-icone{
+  width:68px;
+  height:68px;
+  margin:0 auto 12px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg,#fff0ed,#ffe1dc);
+  box-shadow:0 8px 22px rgba(173,55,42,.12);
+  font-size:2rem;
+}
+.aviso-fechado-eyebrow{
+  margin:0 0 5px;
+  color:#a04734;
+  font-size:.76rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.aviso-fechado-box h2{margin:0 0 9px;color:#562f22}
+.aviso-fechado-box>p:not(.aviso-fechado-eyebrow){margin:0 auto;color:#78645a;line-height:1.55;max-width:390px}
+.aviso-fechado-horario{
+  margin:18px 0 12px;
+  padding:15px 17px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  border-radius:16px;
+  background:#fff;
+  border:1px solid #eadbd0;
+  text-align:left;
+}
+.aviso-fechado-horario span{font-size:.78rem;color:#806e64}
+.aviso-fechado-horario strong{color:#713d28;text-align:right}
+.aviso-fechado-info{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  padding:13px 15px;
+  border-radius:15px;
+  background:#fff5dc;
+  color:#745e50;
+  text-align:left;
+}
+.aviso-fechado-info span{font-size:1.2rem}
+.aviso-fechado-info p{margin:0;font-size:.83rem;line-height:1.45}
+.aviso-fechado-entendi{width:100%;margin-top:17px;min-height:48px}
+@media(max-width:520px){
+  .aviso-fechado-box{padding:27px 18px 20px;border-radius:22px}
+  .aviso-fechado-horario{align-items:flex-start;flex-direction:column}
+  .aviso-fechado-horario strong{text-align:left}
+}

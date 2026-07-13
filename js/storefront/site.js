@@ -113,51 +113,124 @@ function renderCardapioDiaSite() {
 }
 
 
+function minutosDoHorario(horario = "") {
+  const [hora, minuto] = horario.split(":").map(Number);
+  if (!Number.isFinite(hora) || !Number.isFinite(minuto)) return null;
+  return hora * 60 + minuto;
+}
+
+function formatarPeriodosAtendimento(periodos = []) {
+  const validos = periodos.filter(periodo => periodo?.inicio && periodo?.fim);
+  if (!validos.length) return "";
+  return validos.map(periodo => `${periodo.inicio}–${periodo.fim}`).join(" e ");
+}
+
 function calcularStatusAtendimento() {
   const horarios = lojaConfig.horariosAtendimento || {};
   const agora = new Date();
-
   const dias = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
-  const diaAtual = dias[agora.getDay()];
-  const horaAtual = agora.toTimeString().slice(0, 5);
-
+  const nomesDias = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+  const indiceHoje = agora.getDay();
+  const diaAtual = dias[indiceHoje];
+  const minutoAtual = agora.getHours() * 60 + agora.getMinutes();
   const configHoje = horarios[diaAtual];
+  const periodosHoje = (configHoje?.periodos || [])
+    .filter(periodo => periodo?.inicio && periodo?.fim)
+    .sort((a, b) => minutosDoHorario(a.inicio) - minutosDoHorario(b.inicio));
 
-  if (!configHoje || configHoje.fechado || !configHoje.periodos?.length) {
-    return { aberto: false, texto: "🔴 Fechado no momento" };
-  }
-
-  for (const periodo of configHoje.periodos) {
-    if (horaAtual >= periodo.inicio && horaAtual <= periodo.fim) {
-  const [horaFim, minutoFim] = periodo.fim.split(":").map(Number);
-  const fim = new Date();
-  fim.setHours(horaFim, minutoFim, 0, 0);
-
-  const minutosParaFechar = Math.round((fim - agora) / 60000);
-
-  if (minutosParaFechar <= 30 && minutosParaFechar > 0) {
+  if (lojaConfig.statusLoja === "fechada") {
     return {
-      aberto: true,
-      texto: `🟡 Fechando em breve · fecha às ${periodo.fim}`
+      aberto: false,
+      texto: "🔴 Fechado no momento",
+      motivo: "fechamento_manual",
+      horarioHoje: formatarPeriodosAtendimento(periodosHoje)
     };
   }
 
-  return {
-    aberto: true,
-    texto: `🟢 Aberto agora até ${periodo.fim}`
-  };
-}
+  if (configHoje && configHoje.fechado !== true && periodosHoje.length) {
+    for (const periodo of periodosHoje) {
+      const inicio = minutosDoHorario(periodo.inicio);
+      const fim = minutosDoHorario(periodo.fim);
 
-    if (horaAtual < periodo.inicio) {
+      if (minutoAtual >= inicio && minutoAtual <= fim) {
+        const minutosParaFechar = fim - minutoAtual;
+        return {
+          aberto: true,
+          texto: minutosParaFechar <= 30 && minutosParaFechar > 0
+            ? `🟡 Fechando em breve · fecha às ${periodo.fim}`
+            : `🟢 Aberto agora até ${periodo.fim}`,
+          periodoAtual: periodo,
+          horarioHoje: formatarPeriodosAtendimento(periodosHoje)
+        };
+      }
+
+      if (minutoAtual < inicio) {
+        return {
+          aberto: false,
+          texto: `🔴 Fechado · abrimos hoje às ${periodo.inicio}`,
+          proximaAbertura: `Hoje, às ${periodo.inicio}`,
+          horarioHoje: formatarPeriodosAtendimento(periodosHoje)
+        };
+      }
+    }
+  }
+
+  for (let deslocamento = 1; deslocamento <= 7; deslocamento++) {
+    const indice = (indiceHoje + deslocamento) % 7;
+    const chaveDia = dias[indice];
+    const configDia = horarios[chaveDia];
+    const periodos = (configDia?.periodos || [])
+      .filter(periodo => periodo?.inicio && periodo?.fim)
+      .sort((a, b) => minutosDoHorario(a.inicio) - minutosDoHorario(b.inicio));
+
+    if (configDia?.fechado !== true && periodos.length) {
+      const rotulo = deslocamento === 1 ? "Amanhã" : nomesDias[indice];
       return {
         aberto: false,
-        texto: `🔴 Fechado · abrimos hoje às ${periodo.inicio}`
+        texto: `🔴 Fechado · abrimos ${rotulo.toLowerCase()} às ${periodos[0].inicio}`,
+        proximaAbertura: `${rotulo}, às ${periodos[0].inicio}`,
+        horarioHoje: formatarPeriodosAtendimento(periodosHoje)
       };
     }
   }
 
-  return { aberto: false, texto: "🔴 Fechado no momento" };
+  return {
+    aberto: false,
+    texto: "🔴 Fechado no momento",
+    horarioHoje: formatarPeriodosAtendimento(periodosHoje)
+  };
 }
+
+function abrirAvisoLojaFechada(status) {
+  const modal = document.getElementById("modalLojaFechada");
+  const texto = document.getElementById("textoLojaFechada");
+  const horario = document.getElementById("horarioLojaFechada");
+  if (!modal) return;
+
+  if (texto) {
+    texto.textContent = status?.motivo === "fechamento_manual"
+      ? "A loja foi fechada temporariamente e não está recebendo pedidos agora."
+      : "No momento não estamos recebendo pedidos pelo cardápio normal.";
+  }
+
+  if (horario) {
+    if (status?.proximaAbertura) {
+      horario.innerHTML = `<span>🕒 Próximo atendimento</span><strong>${status.proximaAbertura}</strong>`;
+    } else if (status?.horarioHoje) {
+      horario.innerHTML = `<span>🕒 Horário de hoje</span><strong>${status.horarioHoje}</strong>`;
+    } else {
+      horario.innerHTML = `<span>🕒 Atendimento</span><strong>Consulte nossos horários no site</strong>`;
+    }
+  }
+
+  modal.classList.add("aberto");
+}
+
+function fecharAvisoLojaFechada() {
+  document.getElementById("modalLojaFechada")?.classList.remove("aberto");
+}
+
+window.fecharAvisoLojaFechada = fecharAvisoLojaFechada;
 
 function precoProduto(produto) {
   const promo = promocaoAtivaParaProduto(produto.id);
@@ -625,6 +698,12 @@ function setBotaoFinalizarPedido(texto, desabilitado = false) {
 async function finalizarPedidoImpl() {
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
+    return;
+  }
+
+  const statusAtendimento = calcularStatusAtendimento();
+  if (!statusAtendimento.aberto) {
+    abrirAvisoLojaFechada(statusAtendimento);
     return;
   }
 

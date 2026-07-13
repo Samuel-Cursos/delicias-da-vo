@@ -181,6 +181,23 @@
     </div>
   </div>
 
+
+  <div class="modal aviso-fechado-modal" id="modalLojaFechada" role="dialog" aria-modal="true" aria-labelledby="tituloLojaFechada">
+    <div class="modal-box aviso-fechado-box">
+      <button class="modal-close" type="button" onclick="fecharAvisoLojaFechada()" aria-label="Fechar">✕</button>
+      <div class="aviso-fechado-icone">🔴</div>
+      <p class="aviso-fechado-eyebrow">Atendimento</p>
+      <h2 id="tituloLojaFechada">Estabelecimento fechado</h2>
+      <p id="textoLojaFechada">No momento não estamos recebendo pedidos.</p>
+      <div id="horarioLojaFechada" class="aviso-fechado-horario"></div>
+      <div class="aviso-fechado-info">
+        <span>🛒</span>
+        <p>Seu carrinho continuará salvo. Tente enviar novamente durante o horário de atendimento.</p>
+      </div>
+      <button class="primary-btn aviso-fechado-entendi" type="button" onclick="fecharAvisoLojaFechada()">Entendi</button>
+    </div>
+  </div>
+
   <script type="module" src="js/storefront/site.js"></script>
 
   <script>
