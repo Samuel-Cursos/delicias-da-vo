@@ -733,17 +733,53 @@ function abrirRevisaoPedido(dados) {
   }
 
   if (total) total.textContent = formatarMoeda(dados.total || 0);
+
+  fecharCarrinhoImpl();
+  document.body.classList.add("modal-em-foco");
   modal.classList.add("aberto");
 }
 
 function fecharRevisaoPedido() {
   document.getElementById("modalRevisaoPedido")?.classList.remove("aberto");
+  document.body.classList.remove("modal-em-foco");
+}
+
+function limparCarrinhoAposEnvio() {
+  carrinho = [];
+  salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
+  atualizarCarrinho();
+
+  const camposParaLimpar = [
+    "nomeCliente",
+    "ruaCliente",
+    "numeroCliente",
+    "bairroCliente",
+    "complementoCliente"
+  ];
+
+  camposParaLimpar.forEach(id => {
+    const campo = document.getElementById(id);
+    if (campo) campo.value = "";
+  });
+
+  const tipoPedido = document.getElementById("tipoPedido");
+  if (tipoPedido) tipoPedido.value = "Retirada na loja";
+  atualizarEnderecoPedidoNormal();
+
+  const pix = document.querySelector('input[name="pagamentoVisual"][value="Pix"]');
+  if (pix) {
+    pix.checked = true;
+    selecionarPagamento(pix);
+  }
 }
 
 function confirmarPedidoNoWhatsApp() {
   if (!urlWhatsAppPedidoPendente) return;
   const url = urlWhatsAppPedidoPendente;
+
+  limparCarrinhoAposEnvio();
   fecharRevisaoPedido();
+  urlWhatsAppPedidoPendente = "";
   window.open(url, "_blank");
 }
 
