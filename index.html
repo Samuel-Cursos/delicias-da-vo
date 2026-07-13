@@ -171,12 +171,12 @@
     <div class="modal-box comprovante-box">
       <button class="modal-close" onclick="fecharComprovanteFesta()">✕</button>
       <div class="comprovante-sucesso">✅</div>
-      <h2>Pedido preparado!</h2>
-      <p>Seu pedido foi registrado e será confirmado pela Delícias da Vó pelo WhatsApp.</p>
+      <h2>Revise e confirme sua encomenda</h2>
+      <p>Sua encomenda foi registrada, mas ainda precisa ser enviada pelo WhatsApp para chegar à Delícias da Vó.</p>
       <div id="conteudoComprovanteFesta" class="comprovante-conteudo"></div>
       <div class="modal-actions comprovante-acoes">
-        <button onclick="copiarComprovanteFesta()">📋 Copiar resumo</button>
-        <button class="primary-btn" onclick="abrirWhatsAppComprovante()">💬 Abrir WhatsApp</button>
+        <button onclick="fecharComprovanteFesta()">← Voltar e editar</button>
+        <button class="primary-btn" onclick="abrirWhatsAppComprovante()">🟢 Confirmar pelo WhatsApp</button>
       </div>
     </div>
   </div>
@@ -195,6 +195,43 @@
         <p>Seu carrinho continuará salvo. Tente enviar novamente durante o horário de atendimento.</p>
       </div>
       <button class="primary-btn aviso-fechado-entendi" type="button" onclick="fecharAvisoLojaFechada()">Entendi</button>
+    </div>
+  </div>
+
+
+  <div class="modal revisao-pedido-modal" id="modalRevisaoPedido" role="dialog" aria-modal="true" aria-labelledby="tituloRevisaoPedido">
+    <div class="modal-box revisao-pedido-box">
+      <button class="modal-close" type="button" onclick="fecharRevisaoPedido()" aria-label="Voltar e editar">✕</button>
+      <div class="revisao-pedido-topo">
+        <div class="revisao-pedido-icone">📋</div>
+        <div>
+          <p>Última conferência</p>
+          <h2 id="tituloRevisaoPedido">Revise e confirme seu pedido</h2>
+        </div>
+      </div>
+
+      <div class="revisao-numero">
+        <span>Número do pedido</span>
+        <strong id="revisaoNumeroPedido">DV-0000</strong>
+      </div>
+
+      <div id="revisaoItensPedido" class="revisao-itens"></div>
+      <div id="revisaoDetalhesPedido" class="revisao-detalhes"></div>
+
+      <div class="revisao-total">
+        <span>Total do pedido</span>
+        <strong id="revisaoTotalPedido">R$ 0,00</strong>
+      </div>
+
+      <div class="revisao-alerta">
+        <span>⚠️</span>
+        <p><strong>Seu pedido ainda não foi confirmado.</strong><br>Envie a mensagem pelo WhatsApp para concluir.</p>
+      </div>
+
+      <div class="revisao-acoes">
+        <button class="secondary-btn" type="button" onclick="fecharRevisaoPedido()">← Voltar e editar</button>
+        <button class="primary-btn" type="button" onclick="confirmarPedidoNoWhatsApp()">🟢 Confirmar pelo WhatsApp</button>
+      </div>
     </div>
   </div>
 

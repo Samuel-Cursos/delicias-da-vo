@@ -695,6 +695,66 @@ function setBotaoFinalizarPedido(texto, desabilitado = false) {
 }
 
 
+
+let urlWhatsAppPedidoPendente = "";
+
+function escaparHtmlRevisao(valor = "") {
+  return String(valor)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function abrirRevisaoPedido(dados) {
+  const modal = document.getElementById("modalRevisaoPedido");
+  const numero = document.getElementById("revisaoNumeroPedido");
+  const itens = document.getElementById("revisaoItensPedido");
+  const detalhes = document.getElementById("revisaoDetalhesPedido");
+  const total = document.getElementById("revisaoTotalPedido");
+  if (!modal) return;
+
+  urlWhatsAppPedidoPendente = dados.urlWhatsApp || "";
+  if (numero) numero.textContent = dados.numero || "Pedido";
+
+  if (itens) {
+    itens.innerHTML = (dados.itens || []).map(item => {
+      const complemento = [item.sabor, item.ingredientes].filter(Boolean).join(" • ");
+      const subtotal = Number(item.subtotal || (Number(item.preco || 0) * Number(item.quantidade || 0)));
+      return `<div class="revisao-item">
+        <div><strong>${Number(item.quantidade || 0)}× ${escaparHtmlRevisao(item.nome || "Item")}</strong>
+        ${complemento ? `<small>${escaparHtmlRevisao(complemento)}</small>` : ""}</div>
+        <b>${formatarMoeda(subtotal)}</b>
+      </div>`;
+    }).join("");
+  }
+
+  if (detalhes) {
+    detalhes.innerHTML = `
+      <span><b>📦 Recebimento</b>${escaparHtmlRevisao(dados.tipo || "Retirada")}</span>
+      ${dados.tipo === "Entrega" && dados.endereco ? `<span><b>📍 Endereço</b>${escaparHtmlRevisao(dados.endereco)}</span>` : ""}
+      <span><b>💳 Pagamento</b>${escaparHtmlRevisao(dados.pagamento || "Não informado")}</span>`;
+  }
+
+  if (total) total.textContent = formatarMoeda(dados.total || 0);
+  modal.classList.add("aberto");
+}
+
+function fecharRevisaoPedido() {
+  document.getElementById("modalRevisaoPedido")?.classList.remove("aberto");
+}
+
+function confirmarPedidoNoWhatsApp() {
+  if (!urlWhatsAppPedidoPendente) return;
+  const url = urlWhatsAppPedidoPendente;
+  fecharRevisaoPedido();
+  window.open(url, "_blank");
+}
+
+window.fecharRevisaoPedido = fecharRevisaoPedido;
+window.confirmarPedidoNoWhatsApp = confirmarPedidoNoWhatsApp;
+
 async function finalizarPedidoImpl() {
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
@@ -759,13 +819,17 @@ async function finalizarPedidoImpl() {
     const mensagem = montarMensagemPedidoWhatsApp(pedido);
     const numero = lojaConfig.whatsapp || APP_CONFIG.whatsapp;
 
-    setBotaoFinalizarPedido("✅ Abrindo WhatsApp...", true);
+    abrirRevisaoPedido({
+      numero: pedido.numeroFormatado,
+      itens: pedido.itens || itens,
+      tipo: pedido.tipo || tipo,
+      endereco: pedido.endereco || endereco,
+      pagamento: pedido.pagamento || pagamento,
+      total: pedido.total || total,
+      urlWhatsApp: `https://wa.me/${numero}?text=${textoWhatsApp(mensagem)}`
+    });
 
-    window.open(`https://wa.me/${numero}?text=${textoWhatsApp(mensagem)}`, "_blank");
-
-    setTimeout(() => {
-      setBotaoFinalizarPedido("Enviar pelo WhatsApp", false);
-    }, 1200);
+    setBotaoFinalizarPedido("Enviar pelo WhatsApp", false);
 
   } catch (erro) {
     console.error("Erro ao finalizar pedido:", erro);
@@ -930,7 +994,6 @@ async function enviarEncomendaFesta(){
     const msg=`Olá! Vim pelo site da Delícias da Vó e gostaria de encomendar salgados para festa.\n\nPedido: ${pedido.numero}\nCliente: ${nome}\nWhatsApp: ${telefone}\n${data?`Data da festa: ${data}\n`:""}\n${linhas}\n\nTotal: ${formatarMoeda(totalEstimado)}${obs?`\n\nObservações: ${obs}`:""}\n\nAguardo a confirmação do pedido e do valor.`;
     ultimoComprovanteFesta={pedido,msg};
     mostrarComprovanteFesta(pedido);
-    window.open(`https://wa.me/${lojaConfig.whatsapp||APP_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`,"_blank");
   }catch(erro){
     console.error("Erro ao registrar encomenda:",erro);
     alert("Não foi possível registrar a encomenda. Confira a conexão e as permissões do Firestore.");

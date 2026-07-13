@@ -1028,3 +1028,28 @@ nav button {
   .aviso-fechado-horario{align-items:flex-start;flex-direction:column}
   .aviso-fechado-horario strong{text-align:left}
 }
+
+.revisao-pedido-modal.aberto{display:flex}
+.revisao-pedido-box{width:min(94vw,570px);max-height:92vh;overflow:auto;padding:27px;border-radius:24px;background:linear-gradient(180deg,#fffdfa,#fff8ef);border:1px solid rgba(126,65,39,.12);box-shadow:0 24px 70px rgba(64,34,23,.22)}
+.revisao-pedido-topo{display:flex;align-items:center;gap:14px;text-align:left;margin-bottom:18px}
+.revisao-pedido-icone{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;background:#fff0d8;font-size:1.7rem}
+.revisao-pedido-topo p{margin:0 0 3px;color:#a05b38;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.revisao-pedido-topo h2{margin:0;color:#562f22;font-size:1.35rem}
+.revisao-numero,.revisao-total{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px 16px;border-radius:15px;background:#fff;border:1px solid #eadbd0}
+.revisao-numero span,.revisao-total span{color:#806e64;font-size:.84rem}
+.revisao-numero strong{color:#713d28;font-size:1.05rem}
+.revisao-itens{margin:13px 0;display:grid;gap:8px}
+.revisao-item{display:flex;justify-content:space-between;gap:15px;padding:12px 14px;border-radius:13px;background:#fff;border:1px solid #eee1d7;text-align:left}
+.revisao-item strong{display:block;color:#5f392a}
+.revisao-item small{display:block;margin-top:3px;color:#8a766b}
+.revisao-item>b{white-space:nowrap;color:#74402b}
+.revisao-detalhes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:13px}
+.revisao-detalhes span{padding:11px 13px;border-radius:12px;background:#faf2e8;color:#765f53;font-size:.84rem;text-align:left}
+.revisao-detalhes b{display:block;margin-bottom:3px;color:#654031}
+.revisao-total{margin-top:3px;background:#fff3df}
+.revisao-total strong{font-size:1.3rem;color:#6f3a24}
+.revisao-alerta{display:flex;align-items:flex-start;gap:10px;margin-top:13px;padding:13px 14px;border-radius:14px;background:#fff0c9;text-align:left;color:#725b3e}
+.revisao-alerta p{margin:0;font-size:.84rem;line-height:1.45}
+.revisao-acoes{display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-top:16px}
+.revisao-acoes button{min-height:49px}
+@media(max-width:600px){.revisao-pedido-box{padding:23px 16px}.revisao-detalhes,.revisao-acoes{grid-template-columns:1fr}.revisao-pedido-topo{align-items:flex-start}.revisao-pedido-topo h2{font-size:1.2rem}}
