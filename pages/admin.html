@@ -32,11 +32,13 @@
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
       <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
       <button class="tab-btn tab-encomendas" onclick="abrirAba('encomendas', this)">📅 Agenda de encomendas <span id="badgeEncomendas" class="badge-encomendas" hidden>0</span></button>
+      <button class="tab-btn" onclick="abrirAba('central', this)">📋 Central de pedidos</button>
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
       <button class="tab-btn" onclick="abrirAba('financeiro', this)">📊 Financeiro</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
       <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
+      <button class="tab-btn" onclick="abrirAba('backup', this)">💾 Backup</button>
       <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
 
       <a class="site-link" href="../index.html">🌐 Ver site</a>
@@ -58,6 +60,8 @@
           <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Novo produto</strong><span>Cadastrar ou editar produtos</span></button>
           <button onclick="abrirAbaPorNome('caixa')">💰 <strong>Caixa</strong><span>Ver vendas e pagamentos</span></button>
           <button onclick="abrirAbaPorNome('financeiro')">📊 <strong>Financeiro</strong><span>Entradas, despesas e relatórios</span></button>
+          <button onclick="abrirAbaPorNome('central')">📋 <strong>Central de pedidos</strong><span>Localizar qualquer pedido ou venda</span></button>
+          <button onclick="abrirAbaPorNome('backup')">💾 <strong>Backup</strong><span>Proteger os dados da loja</span></button>
           <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas e descontos</span></button>
         </div>
 
@@ -68,7 +72,7 @@
           <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
           <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
           <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
-          <div class="stat financeiro-resultado"><span>📈 Resultado do mês</span><strong id="statResultadoMes">R$ 0,00</strong><small id="statFinanceiroMes">Entradas menos despesas</small></div>
+          <div class="stat financeiro-resultado"><span>📈 Lucro estimado do mês</span><strong id="statResultadoMes">R$ 0,00</strong><small id="statFinanceiroMes">Entradas menos despesas</small></div>
         </div>
 
         <div class="dashboard-grid">
@@ -255,13 +259,51 @@
           <div class="panel-title">
             <div>
               <h2>Histórico de vendas</h2>
-              <p>Apague vendas de teste ou lançadas errado.</p>
+              <p>Cancele vendas lançadas errado sem apagar o histórico.</p>
             </div>
           </div>
           <div id="historicoVendas" class="lista-simples"></div>
         </div>
       </section>
 
+
+
+      <section class="aba" id="aba-central">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Visão geral</p>
+            <h2>📋 Central de pedidos</h2>
+            <p>Pedidos do site, vendas rápidas e encomendas reunidos em ordem cronológica.</p>
+          </div>
+        </div>
+
+        <div class="central-resumo">
+          <div><span>Todos</span><strong id="centralTotal">0</strong></div>
+          <div><span>Em andamento</span><strong id="centralAndamento">0</strong></div>
+          <div><span>Concluídos</span><strong id="centralConcluidos">0</strong></div>
+          <div><span>Cancelados</span><strong id="centralCancelados">0</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="central-toolbar">
+            <input id="buscaCentralPedidos" class="input-full" placeholder="Buscar número, cliente ou produto..." oninput="renderCentralPedidos()">
+            <select id="filtroOrigemCentral" onchange="renderCentralPedidos()">
+              <option value="todos">Todas as origens</option>
+              <option value="normal">Pedidos do site</option>
+              <option value="venda">Vendas rápidas</option>
+              <option value="festa">Encomendas de festa</option>
+            </select>
+            <select id="filtroStatusCentral" onchange="renderCentralPedidos()">
+              <option value="todos">Todos os status</option>
+              <option value="andamento">Em andamento</option>
+              <option value="concluido">Concluídos</option>
+              <option value="cancelado">Cancelados</option>
+            </select>
+          </div>
+          <div id="statusCentralPedidos" class="festas-conexao-alerta"></div>
+          <div id="listaCentralPedidos" class="central-lista"></div>
+        </div>
+      </section>
 
       <section class="aba" id="aba-financeiro">
         <div class="panel-head">
@@ -272,6 +314,7 @@
           </div>
           <div class="financeiro-head-actions">
             <button class="secondary-btn" onclick="abrirModalMovimento('entrada')">＋ Entrada manual</button>
+            <button class="secondary-btn" onclick="fecharMesFinanceiro()">🔒 Fechar mês</button>
             <button class="primary-btn" onclick="abrirModalMovimento('saida')">－ Registrar despesa</button>
           </div>
         </div>
@@ -295,6 +338,7 @@
           <div class="financeiro-resumo-card saida"><span>Despesas</span><strong id="financeiroSaidas">R$ 0,00</strong><small id="financeiroQtdSaidas">0 lançamentos</small></div>
           <div class="financeiro-resumo-card resultado"><span>Resultado</span><strong id="financeiroResultado">R$ 0,00</strong><small>Entradas menos despesas</small></div>
           <div class="financeiro-resumo-card custo"><span>Custo estimado vendido</span><strong id="financeiroCustoVendido">R$ 0,00</strong><small>Com base nos custos cadastrados</small></div>
+          <div class="financeiro-resumo-card lucro"><span>Lucro estimado</span><strong id="financeiroLucroEstimado">R$ 0,00</strong><small>Entradas − despesas − custos vendidos</small></div>
         </div>
 
         <div class="financeiro-grid">
@@ -334,6 +378,16 @@
           <div id="listaCustosProdutos" class="custos-produtos-grid"></div>
           <div id="statusCustosProdutos" class="auto-save-status"></div>
         </div>
+
+        <div class="panel fechamentos-panel">
+          <div class="panel-title">
+            <div>
+              <h3>🔒 Fechamentos mensais</h3>
+              <p>Resultados congelados para não mudarem quando os custos forem atualizados.</p>
+            </div>
+          </div>
+          <div id="listaFechamentosFinanceiros" class="fechamentos-lista"></div>
+        </div>
       </section>
 
       <section class="aba" id="aba-promocoes">
@@ -369,6 +423,49 @@
           <h3>Categorias cadastradas</h3>
           <p>Ative, edite ou exclua categorias do cardápio.</p>
           <div id="listaCategoriasAdmin" class="lista-promocoes"></div>
+        </div>
+      </section>
+
+
+      <section class="aba" id="aba-backup">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Segurança</p>
+            <h2>💾 Backup dos dados</h2>
+            <p>O GitHub protege o código. Este backup protege produtos, vendas, pedidos e configurações do Firestore.</p>
+          </div>
+        </div>
+
+        <div class="backup-grid">
+          <div class="panel backup-card exportar">
+            <div class="backup-icone">📤</div>
+            <h3>Exportar backup completo</h3>
+            <p>Baixa um arquivo JSON com os dados atuais da Delícias da Vó.</p>
+            <ul>
+              <li>Produtos, categorias e preços</li>
+              <li>Estoque, horários e configurações</li>
+              <li>Vendas, despesas e encomendas</li>
+              <li>Custos e fechamentos financeiros</li>
+            </ul>
+            <button id="btnExportarBackup" class="primary-btn" onclick="exportarBackupCompleto()">Baixar backup agora</button>
+          </div>
+
+          <div class="panel backup-card restaurar">
+            <div class="backup-icone">📥</div>
+            <h3>Restaurar um backup</h3>
+            <p>Recupera os documentos do arquivo sem apagar os dados que não estiverem nele.</p>
+            <label class="backup-arquivo">
+              <span>Escolher arquivo JSON</span>
+              <input id="arquivoBackup" type="file" accept=".json,application/json" onchange="prepararRestauracaoBackup(this)">
+            </label>
+            <div id="backupArquivoSelecionado" class="backup-arquivo-info">Nenhum arquivo selecionado.</div>
+            <button id="btnRestaurarBackup" class="secondary-btn" onclick="confirmarRestauracaoBackup()" disabled>Restaurar dados</button>
+          </div>
+        </div>
+
+        <div id="statusBackup" class="panel backup-status">
+          <strong>Recomendação</strong>
+          <p>Faça um backup antes de atualizações grandes e pelo menos uma vez por mês.</p>
         </div>
       </section>
 

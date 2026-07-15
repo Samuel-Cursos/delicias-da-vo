@@ -7,6 +7,7 @@ export let movimentosFinanceiros = [];
 export let vendasFinanceiras = [];
 export let encomendasFinanceiras = [];
 export let custosProdutos = {};
+export let fechamentosFinanceiros = [];
 
 function ordenarPorData(lista = []) {
   return [...lista].sort((a,b) => {
@@ -75,6 +76,23 @@ export async function salvarCustoProduto(produtoId, dados) {
   }, { merge:true });
 }
 
+
+export function observarFechamentosFinanceiros(callback) {
+  return onSnapshot(collection(db, "fechamentosFinanceiros"), snapshot => {
+    fechamentosFinanceiros = ordenarPorData(snapshot.docs.map(d => ({ id:d.id, ...d.data() })));
+    callback(fechamentosFinanceiros, null);
+  }, erro => callback(fechamentosFinanceiros, erro));
+}
+
+export async function salvarFechamentoFinanceiro(mesId, resumo) {
+  await setDoc(doc(db, "fechamentosFinanceiros", mesId), {
+    mesId,
+    ...resumo,
+    fechadoEm: serverTimestamp(),
+    criadoEmMs: Date.now()
+  }, { merge:true });
+}
+
 function dataISOEncomenda(encomenda) {
   if (encomenda.dataEntregaISO) return encomenda.dataEntregaISO;
   if (encomenda.dataFesta) return encomenda.dataFesta;
@@ -85,7 +103,9 @@ function dataISOEncomenda(encomenda) {
 export function consolidarFinanceiro() {
   const automáticos = [];
 
-  vendasFinanceiras.forEach(venda => {
+  vendasFinanceiras
+    .filter(venda => venda.status !== "cancelada")
+    .forEach(venda => {
     automáticos.push({
       id:`venda-${venda.id}`,
       origem:"Venda rápida",

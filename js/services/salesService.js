@@ -9,6 +9,7 @@ export function observarVendasHoje(callback) {
   return onSnapshot(q, (snapshot) => {
     vendasHoje = snapshot.docs
       .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+      .filter(venda => venda.status !== "cancelada")
       .sort((a, b) => (b.criadoEm?.seconds || 0) - (a.criadoEm?.seconds || 0));
 
     callback(vendasHoje);
@@ -22,6 +23,7 @@ export async function registrarVendaRapida({ itens, pagamento, total, observacao
     pagamento,
     total,
     observacao: observacao || "",
+    status: "concluida",
     dataISO: hojeISO(),
     hora: agoraHora(),
     criadoEm: serverTimestamp()
@@ -88,7 +90,11 @@ export async function excluirVendaComEstorno(venda) {
     });
   }
 
-  await deleteDoc(doc(db, "vendas", venda.id));
+  await updateDoc(doc(db, "vendas", venda.id), {
+    status: "cancelada",
+    canceladaEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp()
+  });
 }
 
 export function resumoCaixa(vendas) {

@@ -479,3 +479,109 @@ button{cursor:pointer;border:0}
 .movimento-modal-box{max-width:650px}.movimento-modal-topo{display:flex;align-items:center;gap:13px;margin-bottom:18px}.movimento-modal-topo>span{width:52px;height:52px;border-radius:15px;background:#fff1df;display:grid;place-items:center;font-size:1.55rem}.movimento-modal-topo p,.movimento-modal-topo h2{margin:0}
 @media(max-width:1000px){.financeiro-resumo-grid{grid-template-columns:repeat(2,1fr)}.financeiro-grid{grid-template-columns:1fr}.custos-produtos-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.financeiro-filtros{align-items:stretch}.financeiro-periodos{display:grid;grid-template-columns:1fr 1fr;width:100%}.periodo-btn{width:100%}.financeiro-periodo-personalizado{width:100%;display:grid;grid-template-columns:1fr 1fr}.exportar-excel-btn{width:100%;margin-left:0}.financeiro-resumo-grid{grid-template-columns:1fr}.financeiro-movimento{grid-template-columns:38px minmax(0,1fr) auto}.financeiro-movimento-valor{grid-column:2}.financeiro-excluir{grid-column:3;grid-row:1/3}.custo-produto-card{grid-template-columns:40px minmax(0,1fr)}.custo-input{grid-column:1/-1}.financeiro-head-actions{width:100%}.financeiro-head-actions button{flex:1}}
+
+
+/* =============== ATUALIZAÇÃO ADMINISTRATIVA COMPLETA =============== */
+.financeiro-resumo-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.financeiro-resumo-card.lucro{background:linear-gradient(135deg,#edf9ff,#dff3ff)}
+.financeiro-resumo-card.lucro strong{color:#176c8d}
+.fechamentos-panel{margin-top:18px}
+.fechamentos-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fechamento-card{padding:16px;border:1px solid #e7ddd5;border-radius:16px;background:linear-gradient(135deg,#fff,#faf6f2)}
+.fechamento-card>div:first-child{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.fechamento-card>div:first-child>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#f1e8df}
+.fechamento-card strong{display:block;color:#5d3d30}.fechamento-card small{color:#8a776c}
+.fechamento-card dl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.fechamento-card dl>div{padding:9px;border-radius:10px;background:#faf7f4}
+.fechamento-card dt{font-size:.7rem;color:#88766b}.fechamento-card dd{margin:3px 0 0;font-weight:850;color:#654436}
+.fechamento-card .lucro{background:#eaf7ef}.fechamento-card .lucro dd{color:#247341}
+
+.central-resumo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.central-resumo>div{padding:16px;border-radius:16px;background:#fff;border:1px solid #e9dfd7;box-shadow:0 6px 18px rgba(61,38,26,.05)}
+.central-resumo span{display:block;color:#806f65;font-size:.8rem}.central-resumo strong{display:block;margin-top:5px;font-size:1.45rem;color:#603c2d}
+.central-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px 180px;gap:10px;margin-bottom:15px}
+.central-toolbar select{min-height:45px;border:1px solid #ddd1c7;border-radius:11px;padding:0 10px;background:#fff}
+.central-lista{display:grid;gap:14px}
+.central-card{padding:17px;border:1px solid #e8ddd5;border-radius:17px;background:#fff;box-shadow:0 7px 20px rgba(61,38,26,.05)}
+.central-card.cancelado{opacity:.7;background:#f7f5f4}
+.central-card-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}
+.central-identificacao h3{margin:6px 0 2px;color:#5e392a}.central-identificacao small{color:#88756a}
+.central-origem{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:.67rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.central-origem.normal{background:#e7f0ff;color:#34629b}.central-origem.venda{background:#e7f7eb;color:#347448}.central-origem.festa{background:#fff0d7;color:#8a5d1f}
+.central-dados{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}
+.central-dados span{padding:10px;border-radius:10px;background:#faf7f4;color:#77665d;font-size:.78rem}
+.central-dados b{display:block;margin-bottom:3px;color:#654235}
+.central-itens{display:flex;flex-wrap:wrap;gap:7px;padding:10px 0;border-top:1px solid #eee5de;border-bottom:1px solid #eee5de}
+.central-itens span{padding:6px 9px;border-radius:9px;background:#fff7ec;color:#755847;font-size:.75rem}
+.central-acoes{display:flex;justify-content:flex-end;gap:9px;margin-top:13px}
+.central-acoes select{min-height:41px;border:1px solid #dcd0c7;border-radius:10px;padding:0 9px}
+.central-cancelar{min-height:41px;padding:0 12px;border:1px solid #e6b7b1;border-radius:10px;background:#fff0ee;color:#a53a31;font-weight:850;cursor:pointer}
+.central-vazia{padding:45px;display:grid;place-items:center;gap:7px;text-align:center;font-size:1.5rem}.central-vazia strong{font-size:1rem}.central-vazia span{font-size:.82rem;color:#88766c}
+.agenda-status.cancelado{background:#ffe6e3;color:#a63830}
+
+.backup-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.backup-card{text-align:center;padding:26px}
+.backup-icone{width:66px;height:66px;margin:0 auto 13px;border-radius:20px;display:grid;place-items:center;font-size:2rem;background:#fff2df}
+.backup-card.restaurar .backup-icone{background:#e7f0ff}
+.backup-card h3{margin:0 0 8px;color:#5f3d2f}.backup-card>p{color:#806e64}
+.backup-card ul{text-align:left;display:grid;gap:7px;margin:18px auto;max-width:350px;color:#79665b}
+.backup-card button{width:100%;min-height:47px}
+.backup-arquivo{display:block;padding:17px;border:2px dashed #d7c8bc;border-radius:14px;background:#faf7f4;cursor:pointer;font-weight:850;color:#654437;margin:17px 0 10px}
+.backup-arquivo input{display:none}
+.backup-arquivo-info{min-height:48px;padding:10px;border-radius:11px;background:#f6f2ee;color:#806e64;font-size:.8rem;margin-bottom:12px}
+.backup-arquivo-info strong,.backup-arquivo-info span{display:block}.backup-arquivo-info span{margin-top:3px}
+.backup-status{margin-top:18px}.backup-status p{margin:5px 0 0;color:#7e6c62}
+.backup-status.sucesso{border-left:5px solid #3b9254;background:#eefaf1}.backup-status.erro{border-left:5px solid #c94a40;background:#fff1ef}
+
+@media(max-width:1100px){
+  .financeiro-resumo-grid{grid-template-columns:repeat(3,1fr)}
+  .central-dados{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:850px){
+  .backup-grid,.fechamentos-lista{grid-template-columns:1fr}
+  .central-toolbar{grid-template-columns:1fr}
+  .central-resumo{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .financeiro-resumo-grid{grid-template-columns:1fr}
+  .central-resumo{grid-template-columns:1fr 1fr}
+  .central-dados{grid-template-columns:1fr}
+  .central-card-topo{flex-direction:column}
+  .central-acoes{flex-direction:column}.central-acoes>*{width:100%}
+}
+
+/* Sidebar do ADM com rolagem independente */
+.sidebar{
+  height:100vh;
+  max-height:100vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.35) transparent;
+}
+.sidebar::-webkit-scrollbar{width:8px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.28);
+  border-radius:999px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.42)}
+.sidebar-brand{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:inherit;
+  padding-bottom:14px;
+}
+.sidebar .site-link,
+.sidebar .logout{
+  flex-shrink:0;
+}
+@media(max-width:900px){
+  .sidebar{
+    height:auto;
+    max-height:none;
+    overflow:visible;
+  }
+}

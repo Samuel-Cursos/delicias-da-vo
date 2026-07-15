@@ -70,6 +70,7 @@ export async function gerarPedidoSite(dadosPedido) {
       id: pedidoId,
       numero: proximo,
       numeroFormatado,
+      status: dadosPedido.status || "registrado",
       dataISO,
       dataBR,
       horaBR,

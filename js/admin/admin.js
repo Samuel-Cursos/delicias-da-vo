@@ -13,11 +13,18 @@ import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../service
 import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore, normalizarPrecoFesta, textoPrecoFesta } from "../services/partyProductService.js";
 import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada, excluirEncomendaFesta } from "../services/partyOrderService.js";
 import {
-  movimentosFinanceiros, vendasFinanceiras, encomendasFinanceiras, custosProdutos,
+  movimentosFinanceiros, vendasFinanceiras, encomendasFinanceiras, custosProdutos, fechamentosFinanceiros,
   observarMovimentosFinanceiros, observarVendasFinanceiras, observarEncomendasFinanceiras,
-  observarCustosProdutos, salvarMovimentoFinanceiro, excluirMovimentoFinanceiro,
-  salvarCustoProduto, consolidarFinanceiro, calcularCustoItens
+  observarCustosProdutos, observarFechamentosFinanceiros, salvarMovimentoFinanceiro,
+  excluirMovimentoFinanceiro, salvarCustoProduto, salvarFechamentoFinanceiro,
+  consolidarFinanceiro, calcularCustoItens
 } from "../services/financeService.js";
+import {
+  pedidosNormaisCentral, vendasCentral, encomendasCentral,
+  observarPedidosNormaisCentral, observarVendasCentral, observarEncomendasCentral,
+  consolidarCentralPedidos, atualizarStatusPedidoNormal, atualizarStatusVenda
+} from "../services/centralOrderService.js";
+import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto } from "../services/backupService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -27,6 +34,8 @@ let promocaoEditando = null;
 let festaEditando = null;
 let periodoFinanceiroAtual = "mes";
 let movimentoEditando = null;
+let arquivoBackupPendente = null;
+let erroCentralPedidos = null;
 
 iniciarAuth();
 
@@ -47,6 +56,11 @@ function iniciarAdminDepoisLogin() {
   observarVendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
   observarEncomendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
   observarCustosProdutos(() => { renderFinanceiro(); renderCustosProdutos(); });
+  observarFechamentosFinanceiros(() => renderFechamentosFinanceiros());
+
+  observarPedidosNormaisCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
+  observarVendasCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
+  observarEncomendasCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
 
   observarVendasHoje(() => {
     renderDashboard();
@@ -87,6 +101,8 @@ function abrirAba(nome, botao) {
     categorias: "Categorias",
     festas: "Salgados para festas",
     encomendas: "Agenda de encomendas",
+    central: "Central de pedidos",
+    backup: "Backup dos dados",
     config: "Configurações"
   };
 
@@ -1364,7 +1380,8 @@ const STATUS_ENCOMENDA = {
   confirmado: ["Confirmado", "confirmado"],
   em_producao: ["Em produção", "producao"],
   pronto: ["Pronto", "pronto"],
-  entregue: ["Entregue", "entregue"]
+  entregue: ["Entregue", "entregue"],
+  cancelado: ["Cancelado", "cancelado"]
 };
 
 function dataEncomenda(valor) {
@@ -1559,7 +1576,9 @@ function resumoFinanceiroPeriodo(lista) {
   const totalEntradas = entradas.reduce((s,m)=>s+Number(m.valor||0),0);
   const totalSaidas = saidas.reduce((s,m)=>s+Number(m.valor||0),0);
   const custoVendido = entradas.reduce((s,m)=>s+calcularCustoItens(m.itens||[]),0);
-  return { entradas, saidas, totalEntradas, totalSaidas, resultado:totalEntradas-totalSaidas, custoVendido };
+  const resultado = totalEntradas-totalSaidas;
+  const lucroEstimado = resultado-custoVendido;
+  return { entradas, saidas, totalEntradas, totalSaidas, resultado, custoVendido, lucroEstimado };
 }
 
 function renderDashboardFinanceiro() {
@@ -1569,10 +1588,10 @@ function renderDashboardFinanceiro() {
   periodoFinanceiroAtual = "mes";
   const resumo = resumoFinanceiroPeriodo(movimentosNoPeriodo());
   periodoFinanceiroAtual = periodoAnterior;
-  elemento.textContent = formatarMoeda(resumo.resultado);
-  elemento.classList.toggle("valor-negativo", resumo.resultado < 0);
+  elemento.textContent = formatarMoeda(resumo.lucroEstimado);
+  elemento.classList.toggle("valor-negativo", resumo.lucroEstimado < 0);
   const texto = document.getElementById("statFinanceiroMes");
-  if (texto) texto.textContent = `${formatarMoeda(resumo.totalEntradas)} em entradas • ${formatarMoeda(resumo.totalSaidas)} em despesas`;
+  if (texto) texto.textContent = `Lucro estimado após despesas e custos vendidos`;
 }
 
 function renderFinanceiro() {
@@ -1589,6 +1608,8 @@ function renderFinanceiro() {
   document.getElementById("financeiroResultado").textContent = formatarMoeda(resumo.resultado);
   document.getElementById("financeiroResultado").classList.toggle("valor-negativo", resumo.resultado < 0);
   document.getElementById("financeiroCustoVendido").textContent = formatarMoeda(resumo.custoVendido);
+  document.getElementById("financeiroLucroEstimado").textContent = formatarMoeda(resumo.lucroEstimado);
+  document.getElementById("financeiroLucroEstimado").classList.toggle("valor-negativo", resumo.lucroEstimado < 0);
   document.getElementById("financeiroQtdEntradas").textContent = `${resumo.entradas.length} lançamento(s)`;
   document.getElementById("financeiroQtdSaidas").textContent = `${resumo.saidas.length} lançamento(s)`;
 
@@ -1742,8 +1763,9 @@ function exportarFinanceiroExcel() {
     ["Período",`${limitesPeriodoFinanceiro().inicio} até ${limitesPeriodoFinanceiro().fim}`],
     ["Entradas",resumo.totalEntradas],
     ["Despesas",resumo.totalSaidas],
-    ["Resultado",resumo.resultado],
-    ["Custo estimado vendido",resumo.custoVendido]
+    ["Resultado antes dos custos",resumo.resultado],
+    ["Custo estimado vendido",resumo.custoVendido],
+    ["Lucro estimado",resumo.lucroEstimado]
   ];
   const movimentoLinhas=lista.map(m=>[
     m.dataISO||"",m.hora||"",m.tipo==="entrada"?"Entrada":"Despesa",m.descricao||"",
@@ -1781,3 +1803,268 @@ window.apagarMovimentoFinanceiro=apagarMovimentoFinanceiro;
 window.renderCustosProdutos=renderCustosProdutos;
 window.salvarCustoProdutoAdmin=salvarCustoProdutoAdmin;
 window.exportarFinanceiroExcel=exportarFinanceiroExcel;
+
+
+const STATUS_CENTRAL = {
+  registrado:["Registrado","registrado"],
+  aguardando_envio:["Aguardando envio","registrado"],
+  aguardando_confirmacao:["Aguardando confirmação","registrado"],
+  confirmado:["Confirmado","confirmado"],
+  preparando:["Em preparação","producao"],
+  em_producao:["Em produção","producao"],
+  pronto:["Pronto","pronto"],
+  entregue:["Entregue","entregue"],
+  concluida:["Concluída","entregue"],
+  cancelado:["Cancelado","cancelado"],
+  cancelada:["Cancelada","cancelado"]
+};
+
+function grupoStatusCentral(status) {
+  if (["cancelado","cancelada"].includes(status)) return "cancelado";
+  if (["entregue","concluida"].includes(status)) return "concluido";
+  return "andamento";
+}
+
+function dataCentralFormatada(valor) {
+  if (!valor) return "Sem data";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor.split("-").reverse().join("/");
+  return valor;
+}
+
+function opcoesStatusCentral(item) {
+  if (item.origemTipo === "venda") {
+    return `<option value="concluida" ${item.status==="concluida"?"selected":""}>Concluída</option>
+      <option value="cancelada" ${item.status==="cancelada"?"selected":""}>Cancelada</option>`;
+  }
+
+  if (item.origemTipo === "festa") {
+    const opcoes=["aguardando_confirmacao","confirmado","em_producao","pronto","entregue","cancelado"];
+    return opcoes.map(status=>`<option value="${status}" ${item.status===status?"selected":""}>${STATUS_CENTRAL[status][0]}</option>`).join("");
+  }
+
+  const opcoes=["registrado","confirmado","preparando","pronto","entregue","cancelado"];
+  return opcoes.map(status=>`<option value="${status}" ${item.status===status?"selected":""}>${STATUS_CENTRAL[status][0]}</option>`).join("");
+}
+
+function renderCentralPedidos() {
+  const box=document.getElementById("listaCentralPedidos");
+  if(!box) return;
+
+  const busca=(document.getElementById("buscaCentralPedidos")?.value||"").toLowerCase();
+  const origem=document.getElementById("filtroOrigemCentral")?.value||"todos";
+  const filtroStatus=document.getElementById("filtroStatusCentral")?.value||"todos";
+  const todos=consolidarCentralPedidos();
+
+  const lista=todos.filter(item=>{
+    const texto=`${item.numeroExibicao} ${item.clienteNome} ${item.origem} ${(item.itens||[]).map(i=>`${i.nome} ${i.sabor||""}`).join(" ")}`.toLowerCase();
+    return (!busca||texto.includes(busca))
+      && (origem==="todos"||item.origemTipo===origem)
+      && (filtroStatus==="todos"||grupoStatusCentral(item.status)===filtroStatus);
+  });
+
+  document.getElementById("centralTotal").textContent=todos.length;
+  document.getElementById("centralAndamento").textContent=todos.filter(i=>grupoStatusCentral(i.status)==="andamento").length;
+  document.getElementById("centralConcluidos").textContent=todos.filter(i=>grupoStatusCentral(i.status)==="concluido").length;
+  document.getElementById("centralCancelados").textContent=todos.filter(i=>grupoStatusCentral(i.status)==="cancelado").length;
+
+  const alerta=document.getElementById("statusCentralPedidos");
+  if(alerta){
+    alerta.style.display=erroCentralPedidos?"flex":"none";
+    alerta.textContent=erroCentralPedidos?"Não foi possível carregar uma das fontes da central agora.":"";
+  }
+
+  if(!lista.length){
+    box.innerHTML='<div class="central-vazia">📭<strong>Nenhum registro encontrado</strong><span>Tente alterar os filtros ou a pesquisa.</span></div>';
+    return;
+  }
+
+  box.innerHTML=lista.map(item=>{
+    const [statusTexto,statusClasse]=STATUS_CENTRAL[item.status]||[item.status||"Registrado","registrado"];
+    const cancelado=grupoStatusCentral(item.status)==="cancelado";
+    return `<article class="central-card ${cancelado?"cancelado":""}">
+      <div class="central-card-topo">
+        <div class="central-identificacao">
+          <span class="central-origem ${item.origemTipo}">${item.origem}</span>
+          <h3>${item.numeroExibicao}</h3>
+          <small>${item.clienteNome}</small>
+        </div>
+        <span class="agenda-status ${statusClasse}">${statusTexto}</span>
+      </div>
+      <div class="central-dados">
+        <span><b>📅 Data</b>${dataCentralFormatada(item.dataExibicao)} ${item.horaExibicao||""}</span>
+        <span><b>💰 Valor</b>${formatarMoeda(item.valor)}</span>
+        <span><b>💳 Pagamento</b>${item.pagamento||"Não informado"}</span>
+        <span><b>🧺 Itens</b>${(item.itens||[]).reduce((s,i)=>s+Number(i.quantidade||0),0)} unidade(s)</span>
+      </div>
+      <div class="central-itens">
+        ${(item.itens||[]).slice(0,6).map(i=>`<span>${i.emoji||"•"} ${i.quantidade||0}× ${i.nome}${i.sabor?` — ${i.sabor}`:""}</span>`).join("")||"<span>Sem itens detalhados</span>"}
+      </div>
+      <div class="central-acoes">
+        <select onchange="alterarStatusCentral('${item.origemTipo}','${item.origemTipo==="normal"?item.caminho:item.id}',this.value)">
+          ${opcoesStatusCentral(item)}
+        </select>
+        ${!cancelado?`<button class="central-cancelar" onclick="cancelarRegistroCentral('${item.origemTipo}','${item.origemTipo==="normal"?item.caminho:item.id}','${String(item.numeroExibicao).replaceAll("'","&#39;")}')">🚫 Cancelar</button>`:""}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+async function alterarStatusCentral(tipo,id,status) {
+  try{
+    if(tipo==="normal") await atualizarStatusPedidoNormal(id,status);
+    else if(tipo==="festa") await atualizarStatusEncomendaFesta(id,status);
+    else if(tipo==="venda"){
+      if(status==="cancelada"){
+        const venda=vendasCentral.find(v=>v.id===id);
+        if(venda?.status!=="cancelada") await excluirVendaComEstorno(venda);
+      } else {
+        await atualizarStatusVenda(id,status);
+      }
+    }
+  }catch(e){
+    console.error(e);
+    alert("Não foi possível atualizar o status.");
+    renderCentralPedidos();
+  }
+}
+
+async function cancelarRegistroCentral(tipo,id,numero) {
+  if(!confirm(`Cancelar ${numero} sem apagar o histórico?`)) return;
+  const status=tipo==="venda"?"cancelada":"cancelado";
+  await alterarStatusCentral(tipo,id,status);
+}
+
+function mesAtualId() {
+  const agora=new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,"0")}`;
+}
+
+async function fecharMesFinanceiro() {
+  const mesId=mesAtualId();
+  const periodoAnterior=periodoFinanceiroAtual;
+  periodoFinanceiroAtual="mes";
+  const resumo=resumoFinanceiroPeriodo(movimentosNoPeriodo());
+  periodoFinanceiroAtual=periodoAnterior;
+
+  const jaExiste=fechamentosFinanceiros.find(f=>f.id===mesId||f.mesId===mesId);
+  const aviso=jaExiste
+    ? `O mês ${mesId} já foi fechado. Deseja atualizar o fechamento com os valores atuais?`
+    : `Fechar o mês ${mesId} e congelar o resumo financeiro atual?`;
+  if(!confirm(aviso)) return;
+
+  try{
+    await salvarFechamentoFinanceiro(mesId,{
+      entradas:resumo.totalEntradas,
+      despesas:resumo.totalSaidas,
+      resultado:resumo.resultado,
+      custoVendido:resumo.custoVendido,
+      lucroEstimado:resumo.lucroEstimado,
+      quantidadeEntradas:resumo.entradas.length,
+      quantidadeDespesas:resumo.saidas.length
+    });
+    alert("Fechamento mensal salvo.");
+  }catch(e){
+    console.error(e);
+    alert("Não foi possível salvar o fechamento mensal.");
+  }
+}
+
+function nomeMesFechamento(mesId="") {
+  const [ano,mes]=mesId.split("-").map(Number);
+  if(!ano||!mes) return mesId;
+  return new Date(ano,mes-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+}
+
+function renderFechamentosFinanceiros() {
+  const box=document.getElementById("listaFechamentosFinanceiros");
+  if(!box) return;
+  if(!fechamentosFinanceiros.length){
+    box.innerHTML='<p class="texto-suave">Nenhum mês fechado ainda.</p>';
+    return;
+  }
+  box.innerHTML=fechamentosFinanceiros.map(f=>`
+    <article class="fechamento-card">
+      <div><span>🔒</span><div><strong>${nomeMesFechamento(f.mesId||f.id)}</strong><small>Resumo congelado</small></div></div>
+      <dl>
+        <div><dt>Entradas</dt><dd>${formatarMoeda(f.entradas)}</dd></div>
+        <div><dt>Despesas</dt><dd>${formatarMoeda(f.despesas)}</dd></div>
+        <div><dt>Custos vendidos</dt><dd>${formatarMoeda(f.custoVendido)}</dd></div>
+        <div class="lucro"><dt>Lucro estimado</dt><dd>${formatarMoeda(f.lucroEstimado)}</dd></div>
+      </dl>
+    </article>`).join("");
+}
+
+function definirStatusBackup(titulo,mensagem,tipo="") {
+  const box=document.getElementById("statusBackup");
+  if(!box) return;
+  box.className=`panel backup-status ${tipo}`;
+  box.innerHTML=`<strong>${titulo}</strong><p>${mensagem}</p>`;
+}
+
+async function exportarBackupCompleto() {
+  const botao=document.getElementById("btnExportarBackup");
+  try{
+    botao.disabled=true;
+    botao.textContent="⏳ Preparando backup...";
+    definirStatusBackup("Gerando backup","Lendo os dados do Firestore. Não feche o painel.");
+    const backup=await gerarBackupCompleto();
+    baixarBackupJson(backup);
+    definirStatusBackup("✅ Backup concluído",`${backup.totalDocumentos} documentos foram incluídos no arquivo.`,"sucesso");
+  }catch(e){
+    console.error(e);
+    definirStatusBackup("❌ Falha no backup","Confira a conexão e as permissões do Firestore.","erro");
+  }finally{
+    botao.disabled=false;
+    botao.textContent="Baixar backup agora";
+  }
+}
+
+async function prepararRestauracaoBackup(input) {
+  const arquivo=input.files?.[0];
+  arquivoBackupPendente=null;
+  const info=document.getElementById("backupArquivoSelecionado");
+  const botao=document.getElementById("btnRestaurarBackup");
+  if(!arquivo){
+    info.textContent="Nenhum arquivo selecionado.";
+    botao.disabled=true;
+    return;
+  }
+  try{
+    const texto=await arquivo.text();
+    const dados=JSON.parse(texto);
+    if(!Array.isArray(dados.documentos)) throw new Error("Formato inválido");
+    arquivoBackupPendente=dados;
+    info.innerHTML=`<strong>${arquivo.name}</strong><span>${dados.totalDocumentos||dados.documentos.length} documentos • criado em ${new Date(dados.criadoEm||Date.now()).toLocaleString("pt-BR")}</span>`;
+    botao.disabled=false;
+  }catch(e){
+    info.textContent="Arquivo inválido ou danificado.";
+    botao.disabled=true;
+  }
+}
+
+async function confirmarRestauracaoBackup() {
+  if(!arquivoBackupPendente) return;
+  if(!confirm("Restaurar este backup? Documentos com o mesmo caminho serão atualizados. Os demais não serão apagados.")) return;
+  const botao=document.getElementById("btnRestaurarBackup");
+  try{
+    botao.disabled=true;
+    definirStatusBackup("Restaurando backup","Iniciando restauração...");
+    const total=await restaurarBackupCompleto(arquivoBackupPendente,(feito,todos)=>{
+      definirStatusBackup("Restaurando backup",`${feito} de ${todos} documentos restaurados.`);
+    });
+    definirStatusBackup("✅ Restauração concluída",`${total} documentos foram processados.`,"sucesso");
+  }catch(e){
+    console.error(e);
+    definirStatusBackup("❌ Falha na restauração",e.message||"Confira o arquivo e as permissões.","erro");
+  }finally{
+    botao.disabled=false;
+  }
+}
+
+window.renderCentralPedidos=renderCentralPedidos;
+window.alterarStatusCentral=alterarStatusCentral;
+window.cancelarRegistroCentral=cancelarRegistroCentral;
+window.fecharMesFinanceiro=fecharMesFinanceiro;
+window.exportarBackupCompleto=exportarBackupCompleto;
+window.prepararRestauracaoBackup=prepararRestauracaoBackup;
+window.confirmarRestauracaoBackup=confirmarRestauracaoBackup;
