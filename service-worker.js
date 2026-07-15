@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix-sabores-ui-emoji-festa-emoji-carrinho-encomendas-v1-pedido-sequencial-precos-oficiais-painel-precos-v2-empadinha-min50-aviso-fechado-revisao-pedido-revisao-festas-fix-agenda-dados-v2-endereco-estruturado-pagamento-cards-sem-whatsapp-carrinho-fecha-limpa-carrinho";
+const CACHE_NAME = "delicias-da-vo-v4-9-2-festas-safe-firestore-fix-sabores-ui-emoji-festa-emoji-carrinho-encomendas-v1-pedido-sequencial-precos-oficiais-painel-precos-v2-empadinha-min50-aviso-fechado-revisao-pedido-revisao-festas-fix-agenda-dados-v2-endereco-estruturado-pagamento-cards-sem-whatsapp-carrinho-fecha-limpa-carrinho-financeiro-completo";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -7,6 +7,7 @@ const ARQUIVOS_CACHE = [
   "/css/site.css",
   "/js/storefront/site.js",
   "/js/services/partyProductService.js",
+  "/js/services/financeService.js",
   "/assets/logo-delicias-da-vo.png",
   "/assets/icon-192.png",
   "/assets/icon-512.png",

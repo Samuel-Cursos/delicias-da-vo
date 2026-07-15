@@ -34,6 +34,7 @@
       <button class="tab-btn tab-encomendas" onclick="abrirAba('encomendas', this)">📅 Agenda de encomendas <span id="badgeEncomendas" class="badge-encomendas" hidden>0</span></button>
       <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
       <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
+      <button class="tab-btn" onclick="abrirAba('financeiro', this)">📊 Financeiro</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
       <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
       <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
@@ -56,6 +57,7 @@
           <button onclick="abrirAbaPorNome('venda')">🧾 <strong>Venda rápida</strong><span>Registrar venda da loja física</span></button>
           <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Novo produto</strong><span>Cadastrar ou editar produtos</span></button>
           <button onclick="abrirAbaPorNome('caixa')">💰 <strong>Caixa</strong><span>Ver vendas e pagamentos</span></button>
+          <button onclick="abrirAbaPorNome('financeiro')">📊 <strong>Financeiro</strong><span>Entradas, despesas e relatórios</span></button>
           <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas e descontos</span></button>
         </div>
 
@@ -66,6 +68,7 @@
           <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
           <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
           <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
+          <div class="stat financeiro-resultado"><span>📈 Resultado do mês</span><strong id="statResultadoMes">R$ 0,00</strong><small id="statFinanceiroMes">Entradas menos despesas</small></div>
         </div>
 
         <div class="dashboard-grid">
@@ -256,6 +259,80 @@
             </div>
           </div>
           <div id="historicoVendas" class="lista-simples"></div>
+        </div>
+      </section>
+
+
+      <section class="aba" id="aba-financeiro">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Gestão da loja</p>
+            <h2>📊 Controle financeiro</h2>
+            <p>Vendas automáticas, despesas, custos e relatórios em um só lugar.</p>
+          </div>
+          <div class="financeiro-head-actions">
+            <button class="secondary-btn" onclick="abrirModalMovimento('entrada')">＋ Entrada manual</button>
+            <button class="primary-btn" onclick="abrirModalMovimento('saida')">－ Registrar despesa</button>
+          </div>
+        </div>
+
+        <div class="financeiro-filtros panel">
+          <div class="financeiro-periodos">
+            <button class="periodo-btn" data-periodo="hoje" onclick="selecionarPeriodoFinanceiro('hoje',this)">Hoje</button>
+            <button class="periodo-btn" data-periodo="semana" onclick="selecionarPeriodoFinanceiro('semana',this)">Esta semana</button>
+            <button class="periodo-btn ativo" data-periodo="mes" onclick="selecionarPeriodoFinanceiro('mes',this)">Este mês</button>
+            <button class="periodo-btn" data-periodo="personalizado" onclick="selecionarPeriodoFinanceiro('personalizado',this)">Personalizado</button>
+          </div>
+          <div id="financeiroPeriodoPersonalizado" class="financeiro-periodo-personalizado" hidden>
+            <label>De<input id="financeiroDataInicio" type="date" onchange="renderFinanceiro()"></label>
+            <label>Até<input id="financeiroDataFim" type="date" onchange="renderFinanceiro()"></label>
+          </div>
+          <button class="exportar-excel-btn" onclick="exportarFinanceiroExcel()">📥 Exportar para Excel</button>
+        </div>
+
+        <div class="financeiro-resumo-grid">
+          <div class="financeiro-resumo-card entrada"><span>Entradas</span><strong id="financeiroEntradas">R$ 0,00</strong><small id="financeiroQtdEntradas">0 lançamentos</small></div>
+          <div class="financeiro-resumo-card saida"><span>Despesas</span><strong id="financeiroSaidas">R$ 0,00</strong><small id="financeiroQtdSaidas">0 lançamentos</small></div>
+          <div class="financeiro-resumo-card resultado"><span>Resultado</span><strong id="financeiroResultado">R$ 0,00</strong><small>Entradas menos despesas</small></div>
+          <div class="financeiro-resumo-card custo"><span>Custo estimado vendido</span><strong id="financeiroCustoVendido">R$ 0,00</strong><small>Com base nos custos cadastrados</small></div>
+        </div>
+
+        <div class="financeiro-grid">
+          <div class="panel">
+            <div class="panel-title">
+              <div><h3>Movimentações</h3><p>Vendas automáticas e lançamentos manuais.</p></div>
+              <select id="financeiroFiltroTipo" onchange="renderFinanceiro()">
+                <option value="todos">Tudo</option>
+                <option value="entrada">Entradas</option>
+                <option value="saida">Despesas</option>
+              </select>
+            </div>
+            <div id="listaMovimentosFinanceiros" class="financeiro-movimentos"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <div><h3>Resumo por pagamento</h3><p>Quanto entrou em cada forma de pagamento.</p></div>
+            </div>
+            <div id="financeiroPagamentos" class="financeiro-pagamentos"></div>
+
+            <div class="panel-title financeiro-produtos-titulo">
+              <div><h3>Produtos mais vendidos</h3><p>Quantidade no período selecionado.</p></div>
+            </div>
+            <div id="financeiroProdutosVendidos" class="financeiro-ranking"></div>
+          </div>
+        </div>
+
+        <div class="panel custos-produtos-panel">
+          <div class="panel-title">
+            <div>
+              <h3>🧾 Custos dos produtos</h3>
+              <p>Preencha apenas o custo aproximado de uma unidade. É opcional e serve para estimar o resultado.</p>
+            </div>
+            <input id="buscaCustoProduto" placeholder="Buscar produto..." oninput="renderCustosProdutos()">
+          </div>
+          <div id="listaCustosProdutos" class="custos-produtos-grid"></div>
+          <div id="statusCustosProdutos" class="auto-save-status"></div>
         </div>
       </section>
 
@@ -540,6 +617,55 @@
         <label class="full">Sabores <small>Separe cada sabor por vírgula</small><input id="festaSabores" placeholder="Ex: Carne, Frango, Presunto e queijo"></label>
       </div>
       <div class="modal-actions"><button onclick="fecharModalFesta()">Cancelar</button><button class="primary-btn" onclick="salvarFestaAdmin()">Salvar produto</button></div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="modalMovimentoFinanceiro">
+    <div class="modal-box movimento-modal-box">
+      <button class="modal-close" onclick="fecharModalMovimento()">✕</button>
+      <div class="movimento-modal-topo">
+        <span id="movimentoModalEmoji">💸</span>
+        <div>
+          <p class="eyebrow">Financeiro</p>
+          <h2 id="movimentoModalTitulo">Registrar despesa</h2>
+        </div>
+      </div>
+      <input id="movimentoTipo" type="hidden" value="saida">
+      <div class="form-grid">
+        <label class="full">Descrição<input id="movimentoDescricao" placeholder="Ex: Compra de frango"></label>
+        <label>Categoria
+          <select id="movimentoCategoria">
+            <option>Ingredientes</option>
+            <option>Embalagens</option>
+            <option>Bebidas</option>
+            <option>Gás</option>
+            <option>Entrega</option>
+            <option>Taxas</option>
+            <option>Energia</option>
+            <option>Manutenção</option>
+            <option>Vendas</option>
+            <option>Outros</option>
+          </select>
+        </label>
+        <label>Valor (R$)<input id="movimentoValor" type="number" min="0.01" step="0.01" placeholder="0,00"></label>
+        <label>Forma de pagamento
+          <select id="movimentoPagamento">
+            <option>Pix</option>
+            <option>Dinheiro</option>
+            <option>Cartão débito</option>
+            <option>Cartão crédito</option>
+            <option>Boleto</option>
+            <option>Não informado</option>
+          </select>
+        </label>
+        <label>Data<input id="movimentoData" type="date"></label>
+        <label class="full">Observação<textarea id="movimentoObservacao" rows="3" placeholder="Detalhes opcionais"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button onclick="fecharModalMovimento()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarMovimentoAdmin()">Salvar lançamento</button>
+      </div>
     </div>
   </div>
 

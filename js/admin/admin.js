@@ -12,6 +12,12 @@ import { storage, storageRef, uploadBytes, getDownloadURL, deleteObject } from "
 import { observarResumoPedidosSiteHoje, resumoPedidosSiteHoje } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, salvarSalgadoFesta, excluirSalgadoFesta, enviarProdutosBaseParaFirestore, descreverErroFirestore, normalizarPrecoFesta, textoPrecoFesta } from "../services/partyProductService.js";
 import { encomendasFesta, observarEncomendasFesta, atualizarStatusEncomendaFesta, marcarEncomendaVisualizada, excluirEncomendaFesta } from "../services/partyOrderService.js";
+import {
+  movimentosFinanceiros, vendasFinanceiras, encomendasFinanceiras, custosProdutos,
+  observarMovimentosFinanceiros, observarVendasFinanceiras, observarEncomendasFinanceiras,
+  observarCustosProdutos, salvarMovimentoFinanceiro, excluirMovimentoFinanceiro,
+  salvarCustoProduto, consolidarFinanceiro, calcularCustoItens
+} from "../services/financeService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -19,6 +25,8 @@ let produtoEditando = null;
 let vendaAtual = [];
 let promocaoEditando = null;
 let festaEditando = null;
+let periodoFinanceiroAtual = "mes";
+let movimentoEditando = null;
 
 iniciarAuth();
 
@@ -28,11 +36,17 @@ function iniciarAdminDepoisLogin() {
     renderProdutosAdmin();
     renderVendaRapida();
     renderPromocoesAdmin();
+    renderCustosProdutos();
   });
 
   iniciarCategoriasAdmin();
   observarSalgadosFesta((_, erro) => renderFestasAdmin(erro));
   observarEncomendasFesta((_, erro) => { renderAgendaEncomendas(erro); renderNotificacoesEncomendas(); });
+
+  observarMovimentosFinanceiros(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
+  observarVendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
+  observarEncomendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
+  observarCustosProdutos(() => { renderFinanceiro(); renderCustosProdutos(); });
 
   observarVendasHoje(() => {
     renderDashboard();
@@ -68,6 +82,7 @@ function abrirAba(nome, botao) {
     produtos: "Produtos",
     venda: "Venda rápida",
     caixa: "Caixa",
+    financeiro: "Financeiro",
     promocoes: "Promoções",
     categorias: "Categorias",
     festas: "Salgados para festas",
@@ -1477,3 +1492,292 @@ function atualizarPreviaPrecoFesta() {
 }
 window.atualizarCamposPrecoFesta = atualizarCamposPrecoFesta;
 window.atualizarPreviaPrecoFesta = atualizarPreviaPrecoFesta;
+
+
+function dataHojeISOFinanceiro() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth()+1).padStart(2,"0");
+  const dia = String(agora.getDate()).padStart(2,"0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function limitesPeriodoFinanceiro() {
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  let inicio = new Date(hoje);
+  let fim = new Date(hoje);
+
+  if (periodoFinanceiroAtual === "semana") {
+    const diaSemana = hoje.getDay();
+    const deslocamento = diaSemana === 0 ? 6 : diaSemana - 1;
+    inicio.setDate(hoje.getDate() - deslocamento);
+  } else if (periodoFinanceiroAtual === "mes") {
+    inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    fim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
+  } else if (periodoFinanceiroAtual === "personalizado") {
+    const valorInicio = document.getElementById("financeiroDataInicio")?.value;
+    const valorFim = document.getElementById("financeiroDataFim")?.value;
+    if (valorInicio) inicio = new Date(`${valorInicio}T00:00:00`);
+    if (valorFim) fim = new Date(`${valorFim}T23:59:59`);
+  }
+
+  const iso = data => {
+    const a=data.getFullYear(), m=String(data.getMonth()+1).padStart(2,"0"), d=String(data.getDate()).padStart(2,"0");
+    return `${a}-${m}-${d}`;
+  };
+  return { inicio:iso(inicio), fim:iso(fim) };
+}
+
+function movimentosNoPeriodo() {
+  const { inicio, fim } = limitesPeriodoFinanceiro();
+  return consolidarFinanceiro().filter(m => {
+    const data = m.dataISO || "";
+    return data >= inicio && data <= fim;
+  });
+}
+
+function selecionarPeriodoFinanceiro(periodo, botao) {
+  periodoFinanceiroAtual = periodo;
+  document.querySelectorAll(".periodo-btn").forEach(b => b.classList.toggle("ativo", b === botao));
+  const personalizado = document.getElementById("financeiroPeriodoPersonalizado");
+  if (personalizado) personalizado.hidden = periodo !== "personalizado";
+
+  if (periodo === "personalizado") {
+    const hoje = dataHojeISOFinanceiro();
+    const inicio = document.getElementById("financeiroDataInicio");
+    const fim = document.getElementById("financeiroDataFim");
+    if (inicio && !inicio.value) inicio.value = hoje.slice(0,8)+"01";
+    if (fim && !fim.value) fim.value = hoje;
+  }
+  renderFinanceiro();
+}
+
+function resumoFinanceiroPeriodo(lista) {
+  const entradas = lista.filter(m=>m.tipo==="entrada");
+  const saidas = lista.filter(m=>m.tipo==="saida");
+  const totalEntradas = entradas.reduce((s,m)=>s+Number(m.valor||0),0);
+  const totalSaidas = saidas.reduce((s,m)=>s+Number(m.valor||0),0);
+  const custoVendido = entradas.reduce((s,m)=>s+calcularCustoItens(m.itens||[]),0);
+  return { entradas, saidas, totalEntradas, totalSaidas, resultado:totalEntradas-totalSaidas, custoVendido };
+}
+
+function renderDashboardFinanceiro() {
+  const elemento = document.getElementById("statResultadoMes");
+  if (!elemento) return;
+  const periodoAnterior = periodoFinanceiroAtual;
+  periodoFinanceiroAtual = "mes";
+  const resumo = resumoFinanceiroPeriodo(movimentosNoPeriodo());
+  periodoFinanceiroAtual = periodoAnterior;
+  elemento.textContent = formatarMoeda(resumo.resultado);
+  elemento.classList.toggle("valor-negativo", resumo.resultado < 0);
+  const texto = document.getElementById("statFinanceiroMes");
+  if (texto) texto.textContent = `${formatarMoeda(resumo.totalEntradas)} em entradas • ${formatarMoeda(resumo.totalSaidas)} em despesas`;
+}
+
+function renderFinanceiro() {
+  const listaBox = document.getElementById("listaMovimentosFinanceiros");
+  if (!listaBox) return;
+
+  const filtroTipo = document.getElementById("financeiroFiltroTipo")?.value || "todos";
+  const todos = movimentosNoPeriodo();
+  const lista = todos.filter(m => filtroTipo === "todos" || m.tipo === filtroTipo);
+  const resumo = resumoFinanceiroPeriodo(todos);
+
+  document.getElementById("financeiroEntradas").textContent = formatarMoeda(resumo.totalEntradas);
+  document.getElementById("financeiroSaidas").textContent = formatarMoeda(resumo.totalSaidas);
+  document.getElementById("financeiroResultado").textContent = formatarMoeda(resumo.resultado);
+  document.getElementById("financeiroResultado").classList.toggle("valor-negativo", resumo.resultado < 0);
+  document.getElementById("financeiroCustoVendido").textContent = formatarMoeda(resumo.custoVendido);
+  document.getElementById("financeiroQtdEntradas").textContent = `${resumo.entradas.length} lançamento(s)`;
+  document.getElementById("financeiroQtdSaidas").textContent = `${resumo.saidas.length} lançamento(s)`;
+
+  if (!lista.length) {
+    listaBox.innerHTML = '<div class="financeiro-vazio">📭<strong>Nenhuma movimentação neste período</strong><span>As vendas e despesas aparecerão aqui.</span></div>';
+  } else {
+    listaBox.innerHTML = lista.map(m => `
+      <article class="financeiro-movimento ${m.tipo}">
+        <div class="financeiro-movimento-icone">${m.tipo === "entrada" ? "↗" : "↘"}</div>
+        <div class="financeiro-movimento-info">
+          <div><strong>${m.descricao || (m.tipo==="entrada"?"Entrada":"Despesa")}</strong>
+          ${m.automatico ? '<span class="financeiro-automatico">Automático</span>' : ''}</div>
+          <small>${m.dataISO ? m.dataISO.split("-").reverse().join("/") : "Sem data"} ${m.hora || ""} • ${m.categoria || "Outros"} • ${m.pagamento || "Não informado"}</small>
+          ${m.observacao ? `<p>${m.observacao}</p>` : ""}
+        </div>
+        <strong class="financeiro-movimento-valor">${m.tipo==="entrada"?"+":"-"} ${formatarMoeda(m.valor)}</strong>
+        ${!m.automatico ? `<button class="financeiro-excluir" onclick="apagarMovimentoFinanceiro('${m.id}')">🗑️</button>` : ""}
+      </article>`).join("");
+  }
+
+  const pagamentos = {};
+  resumo.entradas.forEach(m => {
+    const chave=m.pagamento||"Não informado";
+    pagamentos[chave]=(pagamentos[chave]||0)+Number(m.valor||0);
+  });
+  const pagBox=document.getElementById("financeiroPagamentos");
+  const maxPagamento=Math.max(1,...Object.values(pagamentos));
+  pagBox.innerHTML=Object.keys(pagamentos).length
+    ? Object.entries(pagamentos).sort((a,b)=>b[1]-a[1]).map(([nome,valor])=>`
+      <div class="financeiro-pagamento-item">
+        <div><span>${nome}</span><strong>${formatarMoeda(valor)}</strong></div>
+        <div class="financeiro-barra"><i style="width:${Math.round(valor/maxPagamento*100)}%"></i></div>
+      </div>`).join("")
+    : '<p class="texto-suave">Nenhuma entrada no período.</p>';
+
+  const ranking={};
+  resumo.entradas.forEach(m=>(m.itens||[]).forEach(i=>{
+    const nome=i.nome||"Produto";
+    ranking[nome]=(ranking[nome]||0)+Number(i.quantidade||0);
+  }));
+  const rankingBox=document.getElementById("financeiroProdutosVendidos");
+  rankingBox.innerHTML=Object.keys(ranking).length
+    ? Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([nome,qtd],i)=>`
+      <div class="financeiro-ranking-item"><span>${i+1}</span><b>${nome}</b><strong>${qtd} un.</strong></div>`).join("")
+    : '<p class="texto-suave">Sem produtos contabilizados.</p>';
+
+  renderDashboardFinanceiro();
+}
+
+function abrirModalMovimento(tipo="saida") {
+  movimentoEditando = null;
+  const modal=document.getElementById("modalMovimentoFinanceiro");
+  document.getElementById("movimentoTipo").value=tipo;
+  document.getElementById("movimentoModalTitulo").textContent=tipo==="saida"?"Registrar despesa":"Registrar entrada";
+  document.getElementById("movimentoModalEmoji").textContent=tipo==="saida"?"💸":"💰";
+  document.getElementById("movimentoDescricao").value="";
+  document.getElementById("movimentoValor").value="";
+  document.getElementById("movimentoData").value=dataHojeISOFinanceiro();
+  document.getElementById("movimentoObservacao").value="";
+  document.getElementById("movimentoCategoria").value=tipo==="saida"?"Ingredientes":"Vendas";
+  modal.classList.add("aberto");
+}
+
+function fecharModalMovimento() {
+  document.getElementById("modalMovimentoFinanceiro")?.classList.remove("aberto");
+  movimentoEditando=null;
+}
+
+async function salvarMovimentoAdmin() {
+  const tipo=document.getElementById("movimentoTipo").value;
+  const descricao=limparTexto(document.getElementById("movimentoDescricao").value);
+  const valor=Number(document.getElementById("movimentoValor").value||0);
+  if(!descricao) return alert("Digite uma descrição.");
+  if(valor<=0) return alert("Digite um valor maior que zero.");
+
+  try{
+    await salvarMovimentoFinanceiro({
+      id:movimentoEditando?.id,
+      tipo,
+      descricao,
+      categoria:document.getElementById("movimentoCategoria").value,
+      valor,
+      pagamento:document.getElementById("movimentoPagamento").value,
+      dataISO:document.getElementById("movimentoData").value||dataHojeISOFinanceiro(),
+      observacao:limparTexto(document.getElementById("movimentoObservacao").value)
+    });
+    fecharModalMovimento();
+  }catch(e){
+    console.error(e);
+    alert("Não foi possível salvar o lançamento. Confira as regras do Firestore.");
+  }
+}
+
+async function apagarMovimentoFinanceiro(id) {
+  if(!confirm("Excluir este lançamento financeiro?")) return;
+  try{await excluirMovimentoFinanceiro(id);}
+  catch(e){console.error(e);alert("Não foi possível excluir o lançamento.");}
+}
+
+function renderCustosProdutos() {
+  const box=document.getElementById("listaCustosProdutos");
+  if(!box) return;
+  const busca=(document.getElementById("buscaCustoProduto")?.value||"").toLowerCase();
+  const mapaProdutos = new Map();
+  [...produtos, ...salgadosFesta].forEach(p => mapaProdutos.set(p.id, p));
+  const lista=[...mapaProdutos.values()].filter(p=>(p.nome||"").toLowerCase().includes(busca));
+  box.innerHTML=lista.length ? lista.map(p=>`
+    <label class="custo-produto-card">
+      <span>${p.emoji||"📦"}</span>
+      <div><strong>${p.nome}</strong><small>Custo aproximado de 1 unidade</small></div>
+      <div class="custo-input"><span>R$</span><input type="number" min="0" step="0.01" value="${Number(custosProdutos[p.id]?.custoUnitario||0)}" onchange="salvarCustoProdutoAdmin('${p.id}', this.value, '${String(p.nome||"").replaceAll("'","&#39;")}')"></div>
+    </label>`).join("") : '<p class="texto-suave">Nenhum produto encontrado.</p>';
+}
+
+async function salvarCustoProdutoAdmin(id, valor, nome) {
+  const status=document.getElementById("statusCustosProdutos");
+  if(status) status.textContent="Salvando custo...";
+  try{
+    await salvarCustoProduto(id,{nome,custoUnitario:Number(valor||0)});
+    if(status){status.textContent="✅ Custo salvo automaticamente.";setTimeout(()=>status.textContent="",2200);}
+  }catch(e){
+    console.error(e);
+    if(status) status.textContent="❌ Não foi possível salvar.";
+  }
+}
+
+function escaparXml(valor) {
+  return String(valor ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;");
+}
+
+function planilhaXml(nome, cabecalhos, linhas) {
+  const celula = (valor, tipo="String") => `<Cell><Data ss:Type="${tipo}">${escaparXml(valor)}</Data></Cell>`;
+  return `<Worksheet ss:Name="${escaparXml(nome)}"><Table>
+    <Row>${cabecalhos.map(h=>celula(h)).join("")}</Row>
+    ${linhas.map(l=>`<Row>${l.map(v=>celula(v,typeof v==="number"?"Number":"String")).join("")}</Row>`).join("")}
+  </Table></Worksheet>`;
+}
+
+function exportarFinanceiroExcel() {
+  const lista=movimentosNoPeriodo();
+  const resumo=resumoFinanceiroPeriodo(lista);
+  const produtos={};
+  lista.filter(m=>m.tipo==="entrada").forEach(m=>(m.itens||[]).forEach(i=>{
+    const nome=i.nome||"Produto";
+    if(!produtos[nome]) produtos[nome]={qtd:0,total:0};
+    produtos[nome].qtd+=Number(i.quantidade||0);
+    produtos[nome].total+=Number(i.subtotal||0);
+  }));
+
+  const resumoLinhas=[
+    ["Período",`${limitesPeriodoFinanceiro().inicio} até ${limitesPeriodoFinanceiro().fim}`],
+    ["Entradas",resumo.totalEntradas],
+    ["Despesas",resumo.totalSaidas],
+    ["Resultado",resumo.resultado],
+    ["Custo estimado vendido",resumo.custoVendido]
+  ];
+  const movimentoLinhas=lista.map(m=>[
+    m.dataISO||"",m.hora||"",m.tipo==="entrada"?"Entrada":"Despesa",m.descricao||"",
+    m.categoria||"",m.pagamento||"",Number(m.valor||0),m.origem||"",m.observacao||""
+  ]);
+  const produtoLinhas=Object.entries(produtos).sort((a,b)=>b[1].qtd-a[1].qtd).map(([nome,d])=>[nome,d.qtd,d.total]);
+  const custoLinhas=produtos ? Object.values(custosProdutos).map(c=>[c.nome||c.produtoId,Number(c.custoUnitario||0)]) : [];
+
+  const xml=`<?xml version="1.0"?>
+  <?mso-application progid="Excel.Sheet"?>
+  <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+   xmlns:o="urn:schemas-microsoft-com:office:office"
+   xmlns:x="urn:schemas-microsoft-com:office:excel"
+   xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+    ${planilhaXml("Resumo",["Indicador","Valor"],resumoLinhas)}
+    ${planilhaXml("Movimentacoes",["Data","Hora","Tipo","Descrição","Categoria","Pagamento","Valor","Origem","Observação"],movimentoLinhas)}
+    ${planilhaXml("Produtos vendidos",["Produto","Quantidade","Faturamento"],produtoLinhas)}
+    ${planilhaXml("Custos produtos",["Produto","Custo unitário"],custoLinhas)}
+  </Workbook>`;
+
+  const blob=new Blob(["\ufeff",xml],{type:"application/vnd.ms-excel"});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download=`relatorio-delicias-da-vo-${limitesPeriodoFinanceiro().inicio}-${limitesPeriodoFinanceiro().fim}.xls`;
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),1500);
+}
+
+window.selecionarPeriodoFinanceiro=selecionarPeriodoFinanceiro;
+window.renderFinanceiro=renderFinanceiro;
+window.abrirModalMovimento=abrirModalMovimento;
+window.fecharModalMovimento=fecharModalMovimento;
+window.salvarMovimentoAdmin=salvarMovimentoAdmin;
+window.apagarMovimentoFinanceiro=apagarMovimentoFinanceiro;
+window.renderCustosProdutos=renderCustosProdutos;
+window.salvarCustoProdutoAdmin=salvarCustoProdutoAdmin;
+window.exportarFinanceiroExcel=exportarFinanceiroExcel;

@@ -1,0 +1,26 @@
+ADICIONE ESTES BLOCOS DENTRO DE:
+
+match /databases/{database}/documents {
+
+Coloque antes do bloqueio geral:
+match /{document=**} {
+  allow read, write: if false;
+}
+
+    // Lançamentos manuais do financeiro
+    match /movimentosFinanceiros/{movimentoId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Custos aproximados dos produtos
+    match /custosProdutos/{produtoId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+As coleções "vendas" e "encomendasFesta" já são utilizadas pelo projeto.
+O módulo financeiro apenas lê essas coleções para gerar entradas automáticas.
+
+IMPORTANTE:
+- Venda rápida entra automaticamente no financeiro.
+- Encomenda de festa entra automaticamente somente quando o status estiver "Entregue".
+- Pedidos normais do site não entram automaticamente como receita porque abrir o WhatsApp não garante que o cliente enviou ou pagou. Registre como entrada manual quando a venda for confirmada.
