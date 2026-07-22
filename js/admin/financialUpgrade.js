@@ -95,7 +95,7 @@ function render(view=S.view){
   }
   if(view==="h"){
     const rows=[...S.v].sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
-    out.innerHTML='<article class="panel"><h3>Historico</h3>'+rows.map(sale=>'<div class="pro-sale"><span><b>'+esc(sale.numero||sale.id.slice(-6))+'</b><br><small>'+esc(sale.dataISO)+" | "+esc(sale.pagamento)+'</small><br>'+((sale.itens||[]).map(item=>item.quantidade+"x "+esc(item.nome)).join(", "))+'</span><span><b>'+R(sale.total)+'</b><br><em class="pro-tag">'+(sale.status==="cancelada"?"Cancelada":sale.statusPagamento==="pendente"?"Pendente":"Concluida")+'</em>'+(sale.status!=="cancelada"?'<br><button data-cancel="'+sale.id+'">Cancelar e devolver estoque</button>':"")+'</span></div>').join("")+"</article>";
+    out.innerHTML='<article class="panel"><div class="panel-title"><h3>Historico</h3><button data-export="v">Exportar CSV</button></div><label>Filtrar status<select id="historyStatus"><option value="todos">Todos</option><option value="concluida">Concluidas</option><option value="pendente">Pendentes</option><option value="cancelada">Canceladas</option></select></label>'+rows.map(sale=>'<div class="pro-sale" data-status="'+(sale.status==="cancelada"?"cancelada":sale.statusPagamento==="pendente"?"pendente":"concluida")+'"><span><b>'+esc(sale.numero||sale.id.slice(-6))+'</b><br><small>'+esc(sale.dataISO)+" | "+esc(sale.pagamento)+'</small><br>'+((sale.itens||[]).map(item=>item.quantidade+"x "+esc(item.nome)).join(", "))+'</span><span><b>'+R(sale.total)+'</b><br><em class="pro-tag">'+(sale.status==="cancelada"?"Cancelada":sale.statusPagamento==="pendente"?"Pendente":"Concluida")+'</em>'+(sale.status!=="cancelada"?'<br><button data-cancel="'+sale.id+'">Cancelar e devolver estoque</button>':"")+'</span></div>').join("")+"</article>";
   }
   if(view==="r"){
     const rows=S.r.filter(item=>item.status!=="cancelada");
@@ -113,6 +113,10 @@ function products(items){
 function cartRows(){
   return S.cart.map(item=>'<div class="pro-cart-row"><span>'+esc(item.nome)+" x "+item.quantidade+'</span><span><button data-q="'+item.id+'" data-n="-1">-</button> <button data-q="'+item.id+'" data-n="1">+</button> <b>'+R(item.preco*item.quantidade)+'</b></span></div>').join("")||"Pedido vazio.";
 }
+function exportHistory(){
+  const rows=["Numero;Data;Pagamento;Status;Total",...S.v.map(sale=>[sale.numero||sale.id,sale.dataISO,sale.pagamento,sale.status==="cancelada"?"Cancelada":sale.statusPagamento==="pendente"?"Pendente":"Concluida",Number(sale.total||0).toFixed(2).replace(".",",")].join(";"))];
+  const link=document.createElement("a");link.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}));link.download="historico-financeiro-"+D()+".csv";link.click();URL.revokeObjectURL(link.href);
+}
 function bind(view,out){
   if(view==="v"){
     out.onclick=e=>{
@@ -121,18 +125,22 @@ function bind(view,out){
       if(add){
         const product=S.p.find(item=>item.id===add);
         const item=S.cart.find(productItem=>productItem.id===add);
-        if(item)item.quantidade++;
+        if(item){if(item.quantidade>=Number(product.estoque||0))return alert("Quantidade maxima em estoque.");item.quantidade++;}
         else S.cart.push({id:product.id,nome:product.nome,preco:Number(product.preco),quantidade:1});
         render("v");
       }
       if(quantity){
         const item=S.cart.find(productItem=>productItem.id===quantity.dataset.q);
-        item.quantidade+=Number(quantity.dataset.n);
+        const product=S.p.find(productItem=>productItem.id===item.id);
+const next=item.quantidade+Number(quantity.dataset.n);
+if(next>Number(product?.estoque||0))return alert("Quantidade maxima em estoque.");
+item.quantidade=next;
         if(item.quantidade<1)S.cart=S.cart.filter(productItem=>productItem!==item);
         render("v");
       }
     };
-    out.querySelector("#pay").onchange=e=>out.querySelector("#rec").hidden=e.target.value!=="Dinheiro";
+    out.querySelector("#ps").oninput=e=>{document.getElementById("pp").innerHTML=products(S.p.filter(item=>item.nome.toLowerCase().includes(e.target.value.toLowerCase().trim())));};
+out.querySelector("#pay").onchange=e=>out.querySelector("#rec").hidden=e.target.value!=="Dinheiro";
     out.querySelector("#got").oninput=()=>{
       const received=num(out.querySelector("#got").value);
       const total=cartTotal();
@@ -144,11 +152,15 @@ function bind(view,out){
     out.querySelector("#openb")?.addEventListener("click",openCash);
     out.querySelector("#close")?.addEventListener("click",closeCash);
   }
-  if(view==="h")out.onclick=e=>{
+  if(view==="h"){
+out.onchange=e=>{if(e.target.id==="historyStatus"){const status=e.target.value;out.querySelectorAll(".pro-sale").forEach(row=>row.hidden=status!=="todos"&&row.dataset.status!==status);}};
+out.querySelector("[data-export]").onclick=exportHistory;
+out.onclick=e=>{
     const id=e.target.closest("[data-cancel]")?.dataset.cancel;
     if(id)cancel(id);
   };
-  if(view==="r")out.onclick=e=>{
+  }
+if(view==="r")out.onclick=e=>{
     const id=e.target.closest("[data-receive]")?.dataset.receive;
     if(id)receive(id);
   };
