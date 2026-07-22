@@ -54,14 +54,12 @@ service cloud.firestore {
 
     match /pedidosSite/{data} {
       allow read: if isAdmin();
-
       match /pedidos/{pedidoId} {
         allow create: if true;
         allow read, update, delete: if isAdmin();
       }
     }
 
-    // Necessário para a Central e o Backup consultarem pedidos de todas as datas
     match /{caminho=**}/pedidos/{pedidoId} {
       allow read: if isAdmin();
     }
@@ -70,13 +68,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Contador público usado apenas para gerar DV-0001, DV-0002...
     match /contadores/encomendasFesta {
       allow read, create, update: if true;
       allow delete: if isAdmin();
     }
 
-    // Outros contadores são exclusivos do administrador
     match /contadores/{id} {
       allow read, write: if isAdmin();
     }
@@ -94,6 +90,16 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    // Contas geradas por vendas com pagamento pendente
+    match /contasReceber/{contaId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Uma sessão de caixa por dia
+    match /sessoesCaixa/{sessaoId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /fechamentosFinanceiros/{mesId} {
       allow read, create, update, delete: if isAdmin();
     }
@@ -104,4 +110,4 @@ service cloud.firestore {
   }
 }
 
-Depois clique em Publicar.
+Depois clique em Publicar no console do Firebase.
