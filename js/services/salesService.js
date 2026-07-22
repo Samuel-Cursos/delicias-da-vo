@@ -1,4 +1,4 @@
-import { db, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, where } from "../core/firebase.js";
+import { db, collection, doc, onSnapshot, serverTimestamp, query, where, runTransaction } from "../core/firebase.js";
 import { hojeISO, agoraHora } from "../core/utils.js";
 
 export let vendasHoje = [];
@@ -16,84 +16,94 @@ export function observarVendasHoje(callback) {
   });
 }
 
+function itensValidos(itens) {
+  if (!Array.isArray(itens) || !itens.length) throw new Error("Adicione pelo menos um produto.");
+
+  return itens.map(item => {
+    const quantidade = Number(item.quantidade || 0);
+    if (!item?.id || quantidade <= 0) throw new Error("Item de venda invalido.");
+    return { ...item, quantidade };
+  });
+}
+
+async function atualizarEstoque(transaction, itens, direcao) {
+  const registros = await Promise.all(itens.map(async item => {
+    const ref = doc(db, "produtos", item.id);
+    return { item, ref, snapshot: await transaction.get(ref) };
+  }));
+
+  registros.forEach(({ item, ref, snapshot }) => {
+    if (!snapshot.exists()) throw new Error("Produto nao encontrado: " + (item.nome || item.id));
+
+    const produto = snapshot.data();
+    if (produto.sobEncomenda) return;
+
+    if (item.variacaoId) {
+      const variacoes = Array.isArray(produto.variacoes) ? [...produto.variacoes] : [];
+      const indice = variacoes.findIndex(variacao => variacao.id === item.variacaoId);
+      if (indice < 0) throw new Error("Variacao nao encontrada para " + (item.nome || "o produto"));
+
+      const atual = Number(variacoes[indice].estoque || 0);
+      const proximo = atual + direcao * item.quantidade;
+      if (proximo < 0) throw new Error("Estoque insuficiente para " + (item.nome || "o produto"));
+
+      transaction.update(ref, {
+        ["variacoes." + indice + ".estoque"]: proximo,
+        atualizadoEm: serverTimestamp()
+      });
+      return;
+    }
+
+    const atual = Number(produto.estoque || 0);
+    const proximo = atual + direcao * item.quantidade;
+    if (proximo < 0) throw new Error("Estoque insuficiente para " + (item.nome || "o produto"));
+
+    transaction.update(ref, { estoque: proximo, atualizadoEm: serverTimestamp() });
+  });
+}
+
 export async function registrarVendaRapida({ itens, pagamento, total, observacao }) {
+  const itensDaVenda = itensValidos(itens);
+  const vendaRef = doc(collection(db, "vendas"));
   const venda = {
     tipo: "fisica",
-    itens,
+    itens: itensDaVenda,
     pagamento,
-    total,
+    statusPagamento: "pago",
+    total: Number(total || 0),
     observacao: observacao || "",
     status: "concluida",
     dataISO: hojeISO(),
     hora: agoraHora(),
-    criadoEm: serverTimestamp()
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp()
   };
 
-  await addDoc(collection(db, "vendas"), venda);
+  await runTransaction(db, async transaction => {
+    await atualizarEstoque(transaction, itensDaVenda, -1);
+    transaction.set(vendaRef, venda);
+  });
 
-  for (const item of itens) {
-    const produtoRef = doc(db, "produtos", item.id);
-    const produtoSnap = await getDoc(produtoRef);
-    if (!produtoSnap.exists()) continue;
-
-    if (item.variacaoId) {
-      const produtoData = produtoSnap.data();
-      const variacoes = Array.isArray(produtoData.variacoes) ? produtoData.variacoes : [];
-      const index = variacoes.findIndex(v => v.id === item.variacaoId);
-      if (index >= 0) {
-        const novoEstoque = Math.max(0, Number(variacoes[index].estoque || 0) - Number(item.quantidade || 0));
-        await updateDoc(produtoRef, {
-          [`variacoes.${index}.estoque`]: novoEstoque,
-          atualizadoEm: serverTimestamp()
-        });
-        continue;
-      }
-    }
-
-    const novoEstoque = Math.max(0, Number(item.estoqueAtual || 0) - Number(item.quantidade || 0));
-    await updateDoc(produtoRef, {
-      estoque: novoEstoque,
-      atualizadoEm: serverTimestamp()
-    });
-  }
-
-  return venda;
+  return { id: vendaRef.id, ...venda };
 }
 
 export async function excluirVendaComEstorno(venda) {
-  if (!venda || !venda.id) {
-    throw new Error("Venda inválida.");
-  }
+  if (!venda?.id) throw new Error("Venda invalida.");
 
-  for (const item of venda.itens || []) {
-    const produtoRef = doc(db, "produtos", item.id);
-    const produtoSnap = await getDoc(produtoRef);
-    if (!produtoSnap.exists()) continue;
+  await runTransaction(db, async transaction => {
+    const vendaRef = doc(db, "vendas", venda.id);
+    const snapshot = await transaction.get(vendaRef);
+    if (!snapshot.exists()) throw new Error("Venda nao encontrada.");
 
-    if (item.variacaoId) {
-      const produtoData = produtoSnap.data();
-      const variacoes = Array.isArray(produtoData.variacoes) ? produtoData.variacoes : [];
-      const index = variacoes.findIndex(v => v.id === item.variacaoId);
-      if (index >= 0) {
-        await updateDoc(produtoRef, {
-          [`variacoes.${index}.estoque`]: Number(item.estoqueAtual || 0),
-          atualizadoEm: serverTimestamp()
-        });
-        continue;
-      }
-    }
+    const dados = snapshot.data();
+    if (dados.status === "cancelada") throw new Error("Esta venda ja foi cancelada.");
 
-    const estoqueRestaurado = Number(item.estoqueAtual || 0);
-    await updateDoc(produtoRef, {
-      estoque: estoqueRestaurado,
+    await atualizarEstoque(transaction, itensValidos(dados.itens || venda.itens), 1);
+    transaction.update(vendaRef, {
+      status: "cancelada",
+      canceladaEm: serverTimestamp(),
       atualizadoEm: serverTimestamp()
     });
-  }
-
-  await updateDoc(doc(db, "vendas", venda.id), {
-    status: "cancelada",
-    canceladaEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp()
   });
 }
 

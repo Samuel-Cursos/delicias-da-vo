@@ -590,6 +590,12 @@ function adicionarVendaRapida(id) {
 
   const item = vendaAtual.find(i => i.id === id);
 
+  const estoque = Number(produto.estoque || 0);
+  if (!produto.sobEncomenda && (!estoque || (item?.quantidade || 0) >= estoque)) {
+    alert("Quantidade maxima disponivel no estoque.");
+    return;
+  }
+
   if (item) item.quantidade++;
   else vendaAtual.push({
     id: produto.id,
@@ -633,7 +639,14 @@ function alterarVendaItem(id, valor) {
   const item = vendaAtual.find(i => i.id === id);
   if (!item) return;
 
-  item.quantidade += valor;
+  const produto = produtos.find(produto => produto.id === id);
+  const proximaQuantidade = item.quantidade + valor;
+  if (valor > 0 && !produto?.sobEncomenda && proximaQuantidade > Number(produto?.estoque || 0)) {
+    alert("Quantidade maxima disponivel no estoque.");
+    return;
+  }
+
+  item.quantidade = proximaQuantidade;
 
   if (item.quantidade <= 0) vendaAtual = vendaAtual.filter(i => i.id !== id);
 
@@ -689,7 +702,13 @@ async function confirmarFinalizacaoVenda() {
   const observacao = limparTexto(document.getElementById("obsVenda").value);
   const total = vendaAtual.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
 
-  await registrarVendaRapida({ itens: vendaAtual, pagamento, total, observacao });
+  try {
+    await registrarVendaRapida({ itens: vendaAtual, pagamento, total, observacao });
+  } catch (error) {
+    console.error(error);
+    alert(error.message || "Nao foi possivel registrar a venda.");
+    return;
+  }
 
   fecharConfirmacaoVenda();
 
