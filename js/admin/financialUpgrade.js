@@ -1,14 +1,279 @@
+function organizeMenu(){
+  const sidebar=document.querySelector(".sidebar");
+  if(!sidebar||document.querySelector(".sidebar-nav"))return;
+  const nav=document.createElement("nav");
+  nav.className="sidebar-nav";
+  const dashboard=sidebar.querySelector('[onclick*="dashboard"]');
+  if(dashboard)nav.append(dashboard);
+  const groups=[
+    ["Pedidos",["central","encomendas","festas"],true],
+    ["Operacao",["venda","caixa"],true],
+    ["Catalogo",["produtos","categorias","promocoes"],false],
+    ["Gestao e sistema",["financeiro","backup","config"],false]
+  ];
+  groups.forEach(([title,names,open])=>{
+    const group=document.createElement("details");
+    group.className="nav-group";
+    group.open=open;
+    if(title==="Operacao")group.id="menu-operacao";
+    const summary=document.createElement("summary");
+    summary.textContent=title;
+    group.append(summary);
+    names.forEach(name=>{
+      const button=[...sidebar.querySelectorAll(".tab-btn")].find(item=>item.getAttribute("onclick")?.includes("'"+name+"'"));
+      if(button)group.append(button);
+    });
+    nav.append(group);
+  });
+  const site=sidebar.querySelector(".site-link");
+  sidebar.insertBefore(nav,site||null);
+  document.head.insertAdjacentHTML("beforeend",'<style>.sidebar{overflow-y:auto}.sidebar-nav{display:grid;gap:8px;flex:1;overflow:auto}.nav-group{border:1px solid rgba(255,255,255,.15);border-radius:14px;overflow:hidden}.nav-group summary{list-style:none;padding:10px 12px;color:#ffe8c7;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}.nav-group summary::-webkit-details-marker{display:none}.nav-group summary:after{content:"+";float:right}.nav-group[open] summary:after{content:"-"} .nav-group .tab-btn{width:100%;border-radius:0;padding:10px 13px}@media(max-width:850px){.sidebar-nav{max-height:none}}</style>');
+}
 
 import{db,collection,doc,setDoc,updateDoc,addDoc,onSnapshot,serverTimestamp,runTransaction}from"../core/firebase.js";
-import{toCents,fromCents,calculateSaleTotalCents,calculateChangeCents,calculateExpectedCashCents,calculateCashDifferenceCents}from"../services/financialCore.js";
-const R=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),D=()=>new Date().toISOString().slice(0,10),S={p:[],v:[],m:[],c:[],r:[],cart:[],busy:false},esc=v=>String(v??"").replace(/[&<>]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[x]));
-const css=' .finance-pro-nav{display:flex;gap:8px;overflow:auto;margin-bottom:16px}.finance-pro-nav button,.pro-product,.pro-cart button{border:1px solid #dfc9aa;background:#fff9ee;border-radius:10px;padding:10px;color:#52351e}.finance-pro-nav .active,.pro-primary{background:#5b3a21!important;color:#fff!important}.pro-grid,.pro-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pro-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}.pro-product{display:grid;text-align:left;gap:3px}.pro-cart-row,.pro-line,.pro-sale{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #eee0cc}.pro-cart-row button{padding:3px 9px}.pro-total{display:flex;justify-content:space-between;padding:14px;background:#f7eddf;margin:12px 0;font-size:20px}.pro-form label{display:grid;gap:5px;margin:9px 0}.pro-form input,.pro-form select{padding:10px;border:1px solid #dec9ad;border-radius:8px}.pro-cards>div{padding:14px;border-radius:12px;background:#fff8ed}.pro-cards strong{display:block;font-size:21px}.pro-tag{font-size:12px;padding:3px 7px;border-radius:99px;background:#fff0bd}@media(max-width:720px){.pro-grid,.pro-cards{grid-template-columns:1fr}}';
-function page(){if(document.getElementById('aba-financeiro-pro'))return;document.head.insertAdjacentHTML('beforeend','<style>'+css+'</style>');let b=document.createElement('button');b.className='tab-btn';b.textContent='💼 Gestão financeira';document.querySelector('.sidebar .tab-btn:nth-of-type(8)')?.insertAdjacentElement('afterend',b);let a=document.createElement('section');a.id='aba-financeiro-pro';a.className='aba';a.innerHTML='<div class="panel-head"><div><p class="eyebrow">Novo módulo</p><h2>Gestão financeira</h2><p>Vendas, caixa, despesas e pendências.</p></div></div><div class="finance-pro-nav"><button class="active" data-x="v">🧾 Vender</button><button data-x="d">📈 Resumo</button><button data-x="c">💵 Caixa</button><button data-x="h">🕘 Histórico</button><button data-x="r">⏳ A receber</button><button data-x="m">↘ Lançamento</button></div><div id="pro"></div>';document.querySelector('.content').append(a);b.onclick=()=>{document.querySelectorAll('.aba,.tab-btn').forEach(x=>x.classList.remove('active'));a.classList.add('active');b.classList.add('active');document.getElementById('tituloAba').textContent='Gestão financeira';render('v')};a.querySelector('.finance-pro-nav').onclick=e=>{let q=e.target.closest('[data-x]');if(!q)return;a.querySelectorAll('[data-x]').forEach(x=>x.classList.toggle('active',x===q));render(q.dataset.x)}}
-const V=()=>S.v.filter(x=>x.status!=='cancelada'&&x.statusPagamento!=='pendente'),sum=(x,k='total')=>x.reduce((a,b)=>a+Number(b[k]||0),0),cart=()=>S.cart.reduce((a,x)=>a+x.preco*x.quantidade,0),session=()=>S.c.find(x=>x.dataISO===D());
-function render(x='v'){let o=document.getElementById('pro');if(!o)return;if(x==='v')o.innerHTML='<div class="pro-grid"><article class="panel"><h3>Produtos</h3><input class="input-full" id="ps" placeholder="Buscar produto"><div id="pp" class="pro-products">'+products(S.p)+'</div></article><article class="panel pro-form"><h3>Pedido</h3><div id="pc">'+cartRows()+'</div><div class="pro-total"><span>Total</span><b>'+R(cart())+'</b></div><label>Pagamento<select id="pay"><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Pendente</option></select></label><label id="rec" hidden>Valor recebido<input id="got" inputmode="decimal"></label><p id="chg"></p><label>Cliente (opcional)<input id="cli"></label><label>Observação<input id="note"></label><button id="finish" class="primary-btn pro-primary" '+(!S.cart.length?'disabled':'')+'>Finalizar venda</button></article></div>';if(x==='d'){let t=V().filter(z=>z.dataISO===D()),e=S.m.filter(z=>z.tipo==='saida'&&z.dataISO===D());o.innerHTML='<div class="pro-cards"><div>Vendas hoje<strong>'+R(sum(t))+'</strong>'+t.length+' venda(s)</div><div>Despesas hoje<strong>'+R(sum(e,'valor'))+'</strong>Resultado '+R(sum(t)-sum(e,'valor'))+'</div><div>Em aberto<strong>'+R(sum(S.r.filter(z=>z.status!=='pago'),'saldo'))+'</strong>'+S.r.filter(z=>z.status!=='pago').length+' pendência(s)</div><div>Ticket médio<strong>'+R(t.length?sum(t)/t.length:0)+'</strong>Vendas não canceladas</div></div>'}if(x==='c'){let q=session();if(!q)o.innerHTML='<article class="panel pro-form"><h3>Abrir caixa</h3><label>Valor inicial<input id="open" inputmode="decimal"></label><button id="openb" class="primary-btn">Abrir caixa</button></article>';else{let s=cash(q);o.innerHTML='<div class="pro-cards"><div>Inicial<strong>'+R(q.valorInicial)+'</strong></div><div>Esperado em dinheiro<strong>'+R(s.expect)+'</strong></div><div>Vendas em dinheiro<strong>'+R(s.cash)+'</strong></div><div>Resultado do dia<strong>'+R(s.sales-s.expenses)+'</strong></div></div>'+(q.status==='fechado'?'<article class="panel"><h3>Caixa fechado</h3><p>Contado: '+R(q.valorContado)+' · Diferença: '+R(q.diferenca)+'</p></article>':'<article class="panel pro-form"><h3>Fechar caixa</h3><label>Valor contado<input id="count" inputmode="decimal"></label><button id="close" class="primary-btn">Fechar caixa</button></article>')}}if(x==='h')o.innerHTML='<article class="panel"><h3>Histórico</h3>'+S.v.sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0)).map(z=>'<div class="pro-sale"><span><b>'+esc(z.numero||z.id.slice(-6))+'</b><br><small>'+esc(z.dataISO)+' · '+esc(z.pagamento)+'</small><br>'+((z.itens||[]).map(i=>i.quantidade+'× '+esc(i.nome)).join(', '))+'</span><span><b>'+R(z.total)+'</b><br><em class="pro-tag">'+(z.status==='cancelada'?'Cancelada':z.statusPagamento==='pendente'?'Pendente':'Concluída')+'</em>'+(z.status!=='cancelada'?'<br><button data-cancel="'+z.id+'">Cancelar</button>':'')+'</span></div>').join('')+'</article>';if(x==='r')o.innerHTML='<article class="panel"><h3>Contas a receber</h3>'+S.r.map(z=>'<div class="pro-sale"><span><b>'+esc(z.cliente||'Cliente não informado')+'</b><br><small>'+esc(z.dataVenda||'')+'</small></span><span><b>'+R(z.saldo)+'</b><br><em class="pro-tag">'+esc(z.status)+'</em>'+(z.status!=='pago'?'<br><button data-receive="'+z.id+'">Receber</button>':'')+'</span></div>').join('')+'</article>';if(x==='m')o.innerHTML='<article class="panel pro-form"><h3>Novo lançamento</h3><label>Tipo<select id="mt"><option value="saida">Despesa</option><option value="entrada">Entrada manual</option><option value="retirada">Retirada</option></select></label><label>Descrição<input id="md"></label><label>Categoria<input id="mc" value="Outras despesas"></label><label>Valor<input id="ma" inputmode="decimal"></label><label>Pagamento<select id="mp"><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option></select></label><button id="save" class="primary-btn">Salvar</button></article>';bind(x,o)}
-function products(a){return a.filter(x=>x.ativo!==false).map(x=>'<button class="pro-product" data-add="'+x.id+'">'+esc(x.emoji||'🍽️')+'<b>'+esc(x.nome)+'</b><small>'+R(x.preco)+'</small></button>').join('')||'Nenhum produto.'}function cartRows(){return S.cart.map(x=>'<div class="pro-cart-row"><span>'+esc(x.nome)+' × '+x.quantidade+'</span><span><button data-q="'+x.id+'" data-n="-1">−</button> <button data-q="'+x.id+'" data-n="1">+</button> <b>'+R(x.preco*x.quantidade)+'</b></span></div>').join('')||'Pedido vazio.'}
-function bind(x,o){if(x==='v'){o.onclick=e=>{let a=e.target.closest('[data-add]')?.dataset.add,q=e.target.closest('[data-q]');if(a){let p=S.p.find(z=>z.id===a),i=S.cart.find(z=>z.id===a);i?i.quantidade++:S.cart.push({id:p.id,nome:p.nome,preco:Number(p.preco),quantidade:1});render('v')}if(q){let i=S.cart.find(z=>z.id===q.dataset.q);i.quantidade+=Number(q.dataset.n);if(i.quantidade<1)S.cart=S.cart.filter(z=>z!==i);render('v')}};o.querySelector('#pay').onchange=e=>o.querySelector('#rec').hidden=e.target.value!=='Dinheiro';o.querySelector('#got').oninput=()=>{let a=num(o.querySelector('#got').value),t=cart();o.querySelector('#chg').textContent=a>=t?'Troco: '+R(fromCents(calculateChangeCents(toCents(a),toCents(t)))):'Faltam '+R(t-a)};o.querySelector('#finish').onclick=finish}if(x==='c'){o.querySelector('#openb')?.addEventListener('click',openCash);o.querySelector('#close')?.addEventListener('click',closeCash)}if(x==='h')o.onclick=e=>{let id=e.target.closest('[data-cancel]')?.dataset['cancel'];if(id)cancel(id)};if(x==='r')o.onclick=e=>{let id=e.target.closest('[data-receive]')?.dataset.receive;if(id)receive(id)};if(x==='m')o.querySelector('#save').onclick=movement}
-const num=x=>Number(String(x||'').replace(/\./g,'').replace(',','.'))||0;
-async function finish(){if(S.busy)return;let p=document.getElementById('pay').value,t=cart(),got=num(document.getElementById('got').value);if(p==='Dinheiro'&&got<t)return alert('Informe o valor recebido.');S.busy=true;try{let r=doc(collection(db,'vendas')),pending=p==='Pendente',items=S.cart.map(x=>({...x,precoUnitarioCentavos:toCents(x.preco),subtotal:x.preco*x.quantidade}));await setDoc(r,{tipo:'fisica',numero:'VD-'+Date.now().toString().slice(-6),itens:items,total:t,totalCentavos:toCents(t),pagamento:p,statusPagamento:pending?'pendente':'pago',valorRecebido:p==='Dinheiro'?got:t,troco:p==='Dinheiro'?got-t:0,cliente:document.getElementById('cli').value.trim(),observacao:document.getElementById('note').value.trim(),status:'concluida',dataISO:D(),hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()});if(pending)await addDoc(collection(db,'contasReceber'),{vendaId:r.id,cliente:document.getElementById('cli').value.trim(),total:t,pago:0,saldo:t,status:'pendente',dataVenda:D(),pagamentos:[],criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()});S.cart=[];alert(pending?'Venda pendente registrada.':'Venda registrada.');render('v')}catch(e){console.error(e);alert('Não foi possível salvar. Confira as regras do Firestore.')}finally{S.busy=false}}
-function cash(q){let v=V().filter(x=>x.dataISO===D()),m=S.m.filter(x=>x.dataISO===D()),cash=sum(v.filter(x=>x.pagamento==='Dinheiro')),inc=sum(m.filter(x=>x.tipo==='entrada'&&x.pagamento==='Dinheiro'),'valor'),exp=sum(m.filter(x=>x.tipo==='saida'&&x.pagamento==='Dinheiro'),'valor'),out=sum(m.filter(x=>x.tipo==='retirada'),'valor'),expect=fromCents(calculateExpectedCashCents({openingBalanceCents:toCents(q.valorInicial),cashSalesCents:toCents(cash),cashIncomeCents:toCents(inc),cashExpensesCents:toCents(exp),cashWithdrawalsCents:toCents(out)}));return{cash,expect,sales:sum(v),expenses:sum(m.filter(x=>x.tipo==='saida'),'valor')}}async function openCash(){let v=num(document.getElementById('open').value);await setDoc(doc(db,'sessoesCaixa',D()),{dataISO:D(),valorInicial:v,status:'aberto',abertoEm:serverTimestamp()})}async function closeCash(){let q=session(),v=num(document.getElementById('count').value);if(!confirm('Fechar o caixa do dia?'))return;let d=fromCents(calculateCashDifferenceCents(toCents(cash(q).expect),toCents(v)));await updateDoc(doc(db,'sessoesCaixa',q.id),{status:'fechado',valorContado:v,diferenca:d,fechadoEm:serverTimestamp()})}async function cancel(id){if(!confirm('Cancelar esta venda?'))return;await updateDoc(doc(db,'vendas',id),{status:'cancelada',canceladaEm:serverTimestamp(),motivoCancelamento:'Cancelada pelo painel'})}async function receive(id){let z=S.r.find(x=>x.id===id),v=num(prompt('Valor recebido:',z.saldo));if(!v||v>z.saldo)return;let paid=Number(z.pago||0)+v,saldo=z.total-paid;await updateDoc(doc(db,'contasReceber',id),{pago:paid,saldo,status:saldo?'parcialmente_pago':'pago',atualizadoEm:serverTimestamp()});await addDoc(collection(db,'movimentosFinanceiros'),{tipo:'entrada',descricao:'Recebimento de pendência',categoria:'Contas a receber',valor:v,pagamento:'Pix',dataISO:D(),criadoEm:serverTimestamp()})}async function movement(){let v=num(document.getElementById('ma').value),d=document.getElementById('md').value.trim();if(!v||!d)return alert('Informe descrição e valor.');await addDoc(collection(db,'movimentosFinanceiros'),{tipo:document.getElementById('mt').value,descricao:d,categoria:document.getElementById('mc').value,valor:v,pagamento:document.getElementById('mp').value,dataISO:D(),criadoEm:serverTimestamp()});alert('Lançamento salvo.');render('m')}
-function obs(){onSnapshot(collection(db,'produtos'),q=>{S.p=q.docs.map(x=>({id:x.id,...x.data()}));if(document.getElementById('aba-financeiro-pro')?.classList.contains('active'))render()});onSnapshot(collection(db,'vendas'),q=>{S.v=q.docs.map(x=>({id:x.id,...x.data()}))});onSnapshot(collection(db,'movimentosFinanceiros'),q=>{S.m=q.docs.map(x=>({id:x.id,...x.data()}))});onSnapshot(collection(db,'sessoesCaixa'),q=>{S.c=q.docs.map(x=>({id:x.id,...x.data()}))});onSnapshot(collection(db,'contasReceber'),q=>{S.r=q.docs.map(x=>({id:x.id,...x.data()}))})}function go(){page();obs()}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',go):go();
+import{toCents,fromCents,calculateChangeCents,calculateExpectedCashCents,calculateCashDifferenceCents}from"../services/financialCore.js";
+
+const R=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const D=()=>new Date().toISOString().slice(0,10);
+const S={p:[],v:[],m:[],c:[],r:[],cart:[],busy:false,view:"v"};
+const esc=v=>String(v??"").replace(/[&<>]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[x]));
+const css=".finance-pro-nav{display:flex;gap:8px;overflow:auto;margin-bottom:16px}.finance-pro-nav button,.pro-product,.pro-cart button{border:1px solid #dfc9aa;background:#fff9ee;border-radius:10px;padding:10px;color:#52351e}.finance-pro-nav .active,.pro-primary{background:#5b3a21!important;color:#fff!important}.pro-grid,.pro-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pro-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}.pro-product{display:grid;text-align:left;gap:3px}.pro-cart-row,.pro-sale{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #eee0cc}.pro-cart-row button{padding:3px 9px}.pro-total{display:flex;justify-content:space-between;padding:14px;background:#f7eddf;margin:12px 0;font-size:20px}.pro-form label{display:grid;gap:5px;margin:9px 0}.pro-form input,.pro-form select{padding:10px;border:1px solid #dec9ad;border-radius:8px}.pro-cards>div{padding:14px;border-radius:12px;background:#fff8ed}.pro-cards strong{display:block;font-size:21px}.pro-tag{font-size:12px;padding:3px 7px;border-radius:99px;background:#fff0bd}.pro-sale button{margin-top:8px}@media(max-width:720px){.pro-grid,.pro-cards{grid-template-columns:1fr}}";
+
+function page(){organizeMenu();
+  if(document.getElementById("aba-financeiro-pro"))return;
+  document.head.insertAdjacentHTML("beforeend","<style>"+css+"</style>");
+  const b=document.createElement("button");
+  b.className="tab-btn";
+  b.textContent="Gestao financeira";
+  const menu=document.getElementById("menu-operacao");
+  if(menu)menu.append(b);else document.querySelector(".sidebar")?.append(b);
+  const a=document.createElement("section");
+  a.id="aba-financeiro-pro";
+  a.className="aba";
+  a.innerHTML='<div class="panel-head"><div><p class="eyebrow">Operacao</p><h2>Gestao financeira</h2><p>Vendas, caixa, despesas e pendencias.</p></div></div><div class="finance-pro-nav"><button class="active" data-x="v">Vender</button><button data-x="d">Resumo</button><button data-x="c">Caixa</button><button data-x="h">Historico</button><button data-x="r">A receber</button><button data-x="m">Lancamento</button></div><div id="pro"></div>';
+  document.querySelector(".content")?.append(a);
+  b.onclick=()=>{
+    document.querySelectorAll(".aba,.tab-btn").forEach(x=>x.classList.remove("active"));
+    a.classList.add("active");b.classList.add("active");
+    document.getElementById("tituloAba").textContent="Gestao financeira";
+    render("v");
+  };
+  a.querySelector(".finance-pro-nav").onclick=e=>{
+    const q=e.target.closest("[data-x]");
+    if(!q)return;
+    a.querySelectorAll("[data-x]").forEach(x=>x.classList.toggle("active",x===q));
+    render(q.dataset.x);
+  };
+}
+
+const sales=()=>S.v.filter(x=>x.status!=="cancelada"&&x.statusPagamento!=="pendente");
+const sum=(items,key="total")=>items.reduce((total,item)=>total+Number(item[key]||0),0);
+const cartTotal=()=>S.cart.reduce((total,item)=>total+item.preco*item.quantidade,0);
+const session=()=>S.c.find(x=>x.dataISO===D());
+const num=value=>Number(String(value||"").replace(/\./g,"").replace(",","."))||0;
+
+function render(view=S.view){
+  S.view=view;
+  const out=document.getElementById("pro");
+  if(!out)return;
+
+  if(view==="v"){
+    out.innerHTML='<div class="pro-grid"><article class="panel"><h3>Produtos</h3><input class="input-full" id="ps" placeholder="Buscar produto"><div id="pp" class="pro-products">'+products(S.p)+'</div></article><article class="panel pro-form"><h3>Pedido</h3><div id="pc">'+cartRows()+'</div><div class="pro-total"><span>Total</span><b>'+R(cartTotal())+'</b></div><label>Pagamento<select id="pay"><option>Pix</option><option>Dinheiro</option><option>Cartao debito</option><option>Cartao credito</option><option>Pendente</option></select></label><label id="rec" hidden>Valor recebido<input id="got" inputmode="decimal"></label><p id="chg"></p><label>Cliente (opcional)<input id="cli"></label><label>Observacao<input id="note"></label><button id="finish" class="primary-btn pro-primary" '+(!S.cart.length?"disabled":"")+'>Finalizar venda</button></article></div>';
+  }
+  if(view==="d"){
+    const today=sales().filter(x=>x.dataISO===D());
+    const expenses=S.m.filter(x=>x.tipo==="saida"&&x.dataISO===D());
+    out.innerHTML='<div class="pro-cards"><div>Vendas hoje<strong>'+R(sum(today))+'</strong>'+today.length+' venda(s)</div><div>Despesas hoje<strong>'+R(sum(expenses,"valor"))+'</strong>Resultado '+R(sum(today)-sum(expenses,"valor"))+'</div><div>Em aberto<strong>'+R(sum(S.r.filter(x=>x.status!=="pago"&&x.status!=="cancelada"),"saldo"))+'</strong>'+S.r.filter(x=>x.status!=="pago"&&x.status!=="cancelada").length+' pendencia(s)</div><div>Ticket medio<strong>'+R(today.length?sum(today)/today.length:0)+'</strong>Vendas nao canceladas</div></div>';
+  }
+  if(view==="c"){
+    const current=session();
+    if(!current)out.innerHTML='<article class="panel pro-form"><h3>Abrir caixa</h3><label>Valor inicial<input id="open" inputmode="decimal"></label><button id="openb" class="primary-btn">Abrir caixa</button></article>';
+    else{
+      const totals=cash(current);
+      out.innerHTML='<div class="pro-cards"><div>Inicial<strong>'+R(current.valorInicial)+'</strong></div><div>Esperado em dinheiro<strong>'+R(totals.expect)+'</strong></div><div>Vendas em dinheiro<strong>'+R(totals.cash)+'</strong></div><div>Resultado do dia<strong>'+R(totals.sales-totals.expenses)+'</strong></div></div>'+(current.status==="fechado"?'<article class="panel"><h3>Caixa fechado</h3><p>Contado: '+R(current.valorContado)+" | Diferenca: "+R(current.diferenca)+'</p></article>':'<article class="panel pro-form"><h3>Fechar caixa</h3><label>Valor contado<input id="count" inputmode="decimal"></label><button id="close" class="primary-btn">Fechar caixa</button></article>');
+    }
+  }
+  if(view==="h"){
+    const rows=[...S.v].sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
+    out.innerHTML='<article class="panel"><h3>Historico</h3>'+rows.map(sale=>'<div class="pro-sale"><span><b>'+esc(sale.numero||sale.id.slice(-6))+'</b><br><small>'+esc(sale.dataISO)+" | "+esc(sale.pagamento)+'</small><br>'+((sale.itens||[]).map(item=>item.quantidade+"x "+esc(item.nome)).join(", "))+'</span><span><b>'+R(sale.total)+'</b><br><em class="pro-tag">'+(sale.status==="cancelada"?"Cancelada":sale.statusPagamento==="pendente"?"Pendente":"Concluida")+'</em>'+(sale.status!=="cancelada"?'<br><button data-cancel="'+sale.id+'">Cancelar e devolver estoque</button>':"")+'</span></div>').join("")+"</article>";
+  }
+  if(view==="r"){
+    const rows=S.r.filter(item=>item.status!=="cancelada");
+    out.innerHTML='<article class="panel"><h3>Contas a receber</h3>'+rows.map(item=>'<div class="pro-sale"><span><b>'+esc(item.cliente||"Cliente nao informado")+'</b><br><small>'+esc(item.dataVenda||"")+'</small></span><span><b>'+R(item.saldo)+'</b><br><em class="pro-tag">'+esc(item.status)+'</em>'+(item.status!=="pago"?'<br><button data-receive="'+item.id+'">Receber</button>':"")+'</span></div>').join("")+"</article>";
+  }
+  if(view==="m"){
+    out.innerHTML='<article class="panel pro-form"><h3>Novo lancamento</h3><label>Tipo<select id="mt"><option value="saida">Despesa</option><option value="entrada">Entrada manual</option><option value="retirada">Retirada</option></select></label><label>Descricao<input id="md"></label><label>Categoria<input id="mc" value="Outras despesas"></label><label>Valor<input id="ma" inputmode="decimal"></label><label>Pagamento<select id="mp"><option>Pix</option><option>Dinheiro</option><option>Cartao debito</option><option>Cartao credito</option></select></label><button id="save" class="primary-btn">Salvar</button></article>';
+  }
+  bind(view,out);
+}
+
+function products(items){
+  return items.filter(item=>item.ativo!==false&&!item.sobEncomenda&&Number(item.estoque||0)>0).map(item=>'<button class="pro-product" data-add="'+item.id+'"><b>'+esc(item.nome)+'</b><small>'+R(item.preco)+" | Estoque: "+Number(item.estoque||0)+'</small></button>').join("")||"Nenhum produto disponivel.";
+}
+function cartRows(){
+  return S.cart.map(item=>'<div class="pro-cart-row"><span>'+esc(item.nome)+" x "+item.quantidade+'</span><span><button data-q="'+item.id+'" data-n="-1">-</button> <button data-q="'+item.id+'" data-n="1">+</button> <b>'+R(item.preco*item.quantidade)+'</b></span></div>').join("")||"Pedido vazio.";
+}
+function bind(view,out){
+  if(view==="v"){
+    out.onclick=e=>{
+      const add=e.target.closest("[data-add]")?.dataset.add;
+      const quantity=e.target.closest("[data-q]");
+      if(add){
+        const product=S.p.find(item=>item.id===add);
+        const item=S.cart.find(productItem=>productItem.id===add);
+        if(item)item.quantidade++;
+        else S.cart.push({id:product.id,nome:product.nome,preco:Number(product.preco),quantidade:1});
+        render("v");
+      }
+      if(quantity){
+        const item=S.cart.find(productItem=>productItem.id===quantity.dataset.q);
+        item.quantidade+=Number(quantity.dataset.n);
+        if(item.quantidade<1)S.cart=S.cart.filter(productItem=>productItem!==item);
+        render("v");
+      }
+    };
+    out.querySelector("#pay").onchange=e=>out.querySelector("#rec").hidden=e.target.value!=="Dinheiro";
+    out.querySelector("#got").oninput=()=>{
+      const received=num(out.querySelector("#got").value);
+      const total=cartTotal();
+      out.querySelector("#chg").textContent=received>=total?"Troco: "+R(received-total):"Faltam "+R(total-received);
+    };
+    out.querySelector("#finish").onclick=finish;
+  }
+  if(view==="c"){
+    out.querySelector("#openb")?.addEventListener("click",openCash);
+    out.querySelector("#close")?.addEventListener("click",closeCash);
+  }
+  if(view==="h")out.onclick=e=>{
+    const id=e.target.closest("[data-cancel]")?.dataset.cancel;
+    if(id)cancel(id);
+  };
+  if(view==="r")out.onclick=e=>{
+    const id=e.target.closest("[data-receive]")?.dataset.receive;
+    if(id)receive(id);
+  };
+  if(view==="m")out.querySelector("#save").onclick=movement;
+}
+
+async function changeStock(transaction,items,direction){
+  const refs=items.map(item=>doc(db,"produtos",item.id));
+  const snapshots=await Promise.all(refs.map(ref=>transaction.get(ref)));
+  snapshots.forEach((snapshot,index)=>{
+    if(!snapshot.exists())return;
+    const item=items[index];
+    const data=snapshot.data();
+    const quantity=Number(item.quantidade||0);
+    if(!quantity||data.sobEncomenda)return;
+    if(item.variacaoId){
+      const variations=Array.isArray(data.variacoes)?data.variacoes:[];
+      const variationIndex=variations.findIndex(variation=>variation.id===item.variacaoId);
+      if(variationIndex<0)return;
+      const current=Number(variations[variationIndex].estoque||0);
+      const next=current+direction*quantity;
+      if(next<0)throw new Error("Estoque insuficiente para "+item.nome);
+      transaction.update(snapshot.ref,{["variacoes."+variationIndex+".estoque"]:next,atualizadoEm:serverTimestamp()});
+      return;
+    }
+    const current=Number(data.estoque||0);
+    const next=current+direction*quantity;
+    if(next<0)throw new Error("Estoque insuficiente para "+item.nome);
+    transaction.update(snapshot.ref,{estoque:next,atualizadoEm:serverTimestamp()});
+  });
+}
+
+async function finish(){
+  if(S.busy)return;
+  const payment=document.getElementById("pay").value;
+  const total=cartTotal();
+  const received=num(document.getElementById("got").value);
+  if(payment==="Dinheiro"&&received<total)return alert("Informe o valor recebido.");
+  S.busy=true;
+  try{
+    const saleRef=doc(collection(db,"vendas"));
+    const pending=payment==="Pendente";
+    const items=S.cart.map(item=>({...item,precoUnitarioCentavos:toCents(item.preco),subtotal:item.preco*item.quantidade}));
+    await runTransaction(db,async transaction=>{
+      await changeStock(transaction,items,-1);
+      transaction.set(saleRef,{
+        tipo:"fisica",numero:"VD-"+Date.now().toString().slice(-6),itens,total,totalCentavos:toCents(total),pagamento:payment,statusPagamento:pending?"pendente":"pago",valorRecebido:payment==="Dinheiro"?received:total,troco:payment==="Dinheiro"?received-total:0,cliente:document.getElementById("cli").value.trim(),observacao:document.getElementById("note").value.trim(),status:"concluida",dataISO:D(),hora:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()
+      });
+    });
+    if(pending)await addDoc(collection(db,"contasReceber"),{vendaId:saleRef.id,cliente:document.getElementById("cli").value.trim(),total,pago:0,saldo:total,status:"pendente",dataVenda:D(),pagamentos:[],criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()});
+    S.cart=[];
+    alert(pending?"Venda pendente registrada.":"Venda registrada e estoque atualizado.");
+    render("v");
+  }catch(error){
+    console.error(error);
+    alert(error.message||"Nao foi possivel salvar. Confira as regras do Firestore.");
+  }finally{S.busy=false;}
+}
+
+function cash(current){
+  const today=sales().filter(item=>item.dataISO===D());
+  const movements=S.m.filter(item=>item.dataISO===D());
+  const cashSales=sum(today.filter(item=>item.pagamento==="Dinheiro"));
+  const income=sum(movements.filter(item=>item.tipo==="entrada"&&item.pagamento==="Dinheiro"),"valor");
+  const expenses=sum(movements.filter(item=>item.tipo==="saida"&&item.pagamento==="Dinheiro"),"valor");
+  const withdrawals=sum(movements.filter(item=>item.tipo==="retirada"),"valor");
+  const expected=fromCents(calculateExpectedCashCents({openingBalanceCents:toCents(current.valorInicial),cashSalesCents:toCents(cashSales),cashIncomeCents:toCents(income),cashExpensesCents:toCents(expenses),cashWithdrawalsCents:toCents(withdrawals)}));
+  return{cash:cashSales,expect:expected,sales:sum(today),expenses:sum(movements.filter(item=>item.tipo==="saida"),"valor")};
+}
+async function openCash(){
+  const value=num(document.getElementById("open").value);
+  await setDoc(doc(db,"sessoesCaixa",D()),{dataISO:D(),valorInicial:value,status:"aberto",abertoEm:serverTimestamp()});
+}
+async function closeCash(){
+  const current=session(),value=num(document.getElementById("count").value);
+  if(!confirm("Fechar o caixa do dia?"))return;
+  const difference=fromCents(calculateCashDifferenceCents(toCents(cash(current).expect),toCents(value)));
+  await updateDoc(doc(db,"sessoesCaixa",current.id),{status:"fechado",valorContado:value,diferenca:difference,fechadoEm:serverTimestamp()});
+}
+async function cancel(id){
+  const receivable=S.r.find(item=>item.vendaId===id);
+  if(!confirm("Cancelar esta venda? O estoque sera devolvido e o financeiro sera ajustado."))return;
+  try{
+    await runTransaction(db,async transaction=>{
+      const saleRef=doc(db,"vendas",id);
+      const snapshot=await transaction.get(saleRef);
+      if(!snapshot.exists())throw new Error("Venda nao encontrada.");
+      const sale=snapshot.data();
+      if(sale.status==="cancelada")throw new Error("Esta venda ja foi cancelada.");
+      await changeStock(transaction,sale.itens||[],1);
+      transaction.update(saleRef,{status:"cancelada",canceladaEm:serverTimestamp(),motivoCancelamento:"Cancelada pelo painel",atualizadoEm:serverTimestamp()});
+      if(receivable)transaction.update(doc(db,"contasReceber",receivable.id),{status:"cancelada",saldo:0,canceladaEm:serverTimestamp(),atualizadoEm:serverTimestamp()});
+    });
+    alert("Venda cancelada. Estoque e financeiro foram ajustados.");
+  }catch(error){
+    console.error(error);
+    alert(error.message||"Nao foi possivel cancelar a venda.");
+  }
+}
+async function receive(id){
+  const item=S.r.find(row=>row.id===id);
+  const value=num(prompt("Valor recebido:",item.saldo));
+  if(!value||value>item.saldo)return;
+  const paid=Number(item.pago||0)+value;
+  const balance=item.total-paid;
+  await updateDoc(doc(db,"contasReceber",id),{pago:paid,saldo:balance,status:balance?"parcialmente_pago":"pago",atualizadoEm:serverTimestamp()});
+  await addDoc(collection(db,"movimentosFinanceiros"),{tipo:"entrada",descricao:"Recebimento de pendencia",categoria:"Contas a receber",valor:value,pagamento:"Pix",dataISO:D(),criadoEm:serverTimestamp()});
+}
+async function movement(){
+  const value=num(document.getElementById("ma").value);
+  const description=document.getElementById("md").value.trim();
+  if(!value||!description)return alert("Informe descricao e valor.");
+  await addDoc(collection(db,"movimentosFinanceiros"),{tipo:document.getElementById("mt").value,descricao:description,categoria:document.getElementById("mc").value,valor:value,pagamento:document.getElementById("mp").value,dataISO:D(),criadoEm:serverTimestamp()});
+  alert("Lancamento salvo.");
+  render("m");
+}
+function rerenderActive(){
+  if(document.getElementById("aba-financeiro-pro")?.classList.contains("active"))render(S.view);
+}
+function obs(){
+  onSnapshot(collection(db,"produtos"),snapshot=>{S.p=snapshot.docs.map(row=>({id:row.id,...row.data()}));rerenderActive();});
+  onSnapshot(collection(db,"vendas"),snapshot=>{S.v=snapshot.docs.map(row=>({id:row.id,...row.data()}));rerenderActive();});
+  onSnapshot(collection(db,"movimentosFinanceiros"),snapshot=>{S.m=snapshot.docs.map(row=>({id:row.id,...row.data()}));rerenderActive();});
+  onSnapshot(collection(db,"sessoesCaixa"),snapshot=>{S.c=snapshot.docs.map(row=>({id:row.id,...row.data()}));rerenderActive();});
+  onSnapshot(collection(db,"contasReceber"),snapshot=>{S.r=snapshot.docs.map(row=>({id:row.id,...row.data()}));rerenderActive();});
+}
+function go(){page();obs();}
+document.readyState==="loading"?document.addEventListener("DOMContentLoaded",go):go();
